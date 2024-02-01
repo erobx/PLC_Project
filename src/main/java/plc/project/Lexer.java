@@ -1,5 +1,6 @@
 package plc.project;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -27,7 +28,22 @@ public final class Lexer {
      * whitespace where appropriate.
      */
     public List<Token> lex() {
-        throw new UnsupportedOperationException(); //TODO
+        List<Token> tokens = new ArrayList<Token>();
+        int i = 0;
+        while (chars.has(i)) {
+            char c = chars.get(i);
+            switch (c) {
+                case ' ':
+                    break;
+                default:
+                    Token token = lexToken();
+                    tokens.add(token);
+                    break;
+            }
+            i++;
+        }
+
+        return tokens;
     }
 
     /**
@@ -39,11 +55,13 @@ public final class Lexer {
      * by {@link #lex()}
      */
     public Token lexToken() {
-        throw new UnsupportedOperationException(); //TODO
+        return lexIdentifier();
     }
 
     public Token lexIdentifier() {
-        throw new UnsupportedOperationException(); //TODO
+        boolean valid = peek("(@|[A-Za-z])", "[A-Za-z0-9_-]*");
+        if (!valid) throw new ParseException("Could not parse token at: ", chars.index);
+        return chars.emit(Token.Type.IDENTIFIER);
     }
 
     public Token lexNumber() {
@@ -121,11 +139,13 @@ public final class Lexer {
             return input.charAt(index + offset);
         }
 
+        // Used to advance CharStream when matching a Token
         public void advance() {
             index++;
             length++;
         }
 
+        // Used to reset CharStream for the start of a new Token
         public void skip() {
             length = 0;
         }
