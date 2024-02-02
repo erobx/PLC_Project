@@ -49,26 +49,27 @@ public final class Lexer {
      * by {@link #lex()}
      */
     public Token lexToken() {
-        String[] identifiers = {"(@|[A-Za-z])", "[A-Za-z0-9_-]*"};
+        String[] identifiers = {"(@|[A-Za-z])"};
         String[] integers = {"0|-?", "[1-9]", "[0-9]*"};
         String[] decimals = {"-?(0|[1-9][0-9]*).[0-9]+"};
         String[] characters = {"[']", "([^'\\n\\r\\\\])", "[']",};
         String[] operators = {"[!=]=?|&&||||."};
 
-        if (peek(identifiers[0])) {
-            while (peek(identifiers[1])) chars.advance();
+        if (peek(identifiers)) {
             return lexIdentifier();
         } else if (peek(characters)) {
             return lexCharacter();
         } else if (peek(operators)) {
+//            System.out.println(match(operators));
             return lexOperator();
         }
 
-        chars.advance();
         return null;
     }
 
     public Token lexIdentifier() {
+        String identifier = "[A-Za-z0-9_-]*";
+        while (peek(identifier)) chars.advance();
         return chars.emit(Token.Type.IDENTIFIER);
     }
 
