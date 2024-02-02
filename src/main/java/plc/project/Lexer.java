@@ -1,6 +1,7 @@
 package plc.project;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -29,20 +30,13 @@ public final class Lexer {
      */
     public List<Token> lex() {
         List<Token> tokens = new ArrayList<Token>();
-        int i = 0;
-        while (chars.has(i)) {
-            char c = chars.get(i);
-            switch (c) {
-                case ' ':
-                    break;
-                default:
-                    Token token = lexToken();
-                    tokens.add(token);
-                    break;
+        int offset = 0;
+        while (chars.index < chars.input.length()) {
+            switch (chars.get(offset)) {
+                case ' ', '\b', '\n', '\r', '\t': break;
+                default: Token token = lexToken(); tokens.add(token); break;
             }
-            i++;
         }
-
         return tokens;
     }
 
@@ -55,15 +49,28 @@ public final class Lexer {
      * by {@link #lex()}
      */
     public Token lexToken() {
-        return lexIdentifier();
+        String[] identifiers = {"(@|[A-Za-z])", "[A-Za-z0-9_-]*"};
+        String[] integers = {"0|-?", "[1-9]", "[0-9]*"};
+        String[] characters = {"[']", "([^'\n\r\\]|)*", "\""};
+        String[] operators = {"[!=]=?|&&||||."};
+        if (peek(identifiers[0])) {
+            while (peek(identifiers[1])) chars.advance();
+            return lexIdentifier();
+        } else if (peek(characters)) {
+            return null;
+        } else if (peek(operators)) {
+            chars.advance();
+            return lexOperator();
+        }
+        chars.advance();
+        return null;
     }
 
     public Token lexIdentifier() {
-        boolean valid = peek("(@|[A-Za-z])", "[A-Za-z0-9_-]*");
-        if (!valid) throw new ParseException("Could not parse token at: ", chars.index);
         return chars.emit(Token.Type.IDENTIFIER);
     }
 
+    // Combination of Integer and Decimal grammar
     public Token lexNumber() {
         throw new UnsupportedOperationException(); //TODO
     }
@@ -81,7 +88,7 @@ public final class Lexer {
     }
 
     public Token lexOperator() {
-        throw new UnsupportedOperationException(); //TODO
+        return chars.emit(Token.Type.OPERATOR);
     }
 
     /**
