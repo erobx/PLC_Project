@@ -33,7 +33,7 @@ public final class Lexer {
         int offset = 0;
         while (chars.index < chars.input.length()) {
             switch (chars.get(offset)) {
-                case ' ', '\b', '\n', '\r', '\t': break;
+                case ' ', '\b', '\n', '\r', '\t': chars.advance(); chars.skip(); break;
                 default: Token token = lexToken(); tokens.add(token); break;
             }
         }
@@ -51,17 +51,19 @@ public final class Lexer {
     public Token lexToken() {
         String[] identifiers = {"(@|[A-Za-z])", "[A-Za-z0-9_-]*"};
         String[] integers = {"0|-?", "[1-9]", "[0-9]*"};
-        String[] characters = {"[']", "([^'\n\r\\]|)*", "\""};
+        String[] decimals = {"-?(0|[1-9][0-9]*).[0-9]+"};
+        String[] characters = {"[']", "([^'\\n\\r\\\\])", "[']",};
         String[] operators = {"[!=]=?|&&||||."};
+
         if (peek(identifiers[0])) {
             while (peek(identifiers[1])) chars.advance();
             return lexIdentifier();
         } else if (peek(characters)) {
-            return null;
+            return lexCharacter();
         } else if (peek(operators)) {
-            chars.advance();
             return lexOperator();
         }
+
         chars.advance();
         return null;
     }
@@ -76,7 +78,8 @@ public final class Lexer {
     }
 
     public Token lexCharacter() {
-        throw new UnsupportedOperationException(); //TODO
+        chars.advance();
+        return chars.emit(Token.Type.CHARACTER);
     }
 
     public Token lexString() {
@@ -88,6 +91,7 @@ public final class Lexer {
     }
 
     public Token lexOperator() {
+        chars.advance();
         return chars.emit(Token.Type.OPERATOR);
     }
 
