@@ -53,6 +53,7 @@ public final class Lexer {
         String[] integers = {"0|-?", "[1-9]", "[0-9]*"};
         String[] decimals = {"-?(0|[1-9][0-9]*).[0-9]+"};
         String[] character = {"'"};
+        String[] string = {"\""};
         String[] operators = {"[!=]=?|&&||||."};
 
         try {
@@ -60,12 +61,14 @@ public final class Lexer {
                 return lexIdentifier();
             } else if (peek(character)) {
                 return lexCharacter();
+            } else if (peek(string)) {
+                return lexString();
             } else if (peek(operators)) {
-//            System.out.println(match(operators));
                 return lexOperator();
             }
         } catch (ParseException ex) {
             System.out.println(ex.getMessage() + " at index: " + ex.getIndex());
+            chars.reset();
         }
 
         return null;
@@ -83,27 +86,41 @@ public final class Lexer {
     }
 
     public Token lexCharacter() {
-        String[] characters = {"'", "([^'\\n\\r\\\\]|\\\\[bnrt'\"\\\\])", "'"};
         String errorMsg = "Invalid character";
+        String[] characters = {"'", "([^'\\n\\r\\\\]|\\\\[bnrt'\"\\\\])", "'"};
         String[] checkBackslash = {"'", "\\\\"};
 
         if (match(checkBackslash)) {
-            for (int i = 0; i < 2; i++) {
-                chars.advance();
+            boolean valid = match("[bnrt'\"\\\\]", "'");
+            if (!valid) {
+                throw new ParseException(errorMsg, chars.index);
             }
         } else if (peek(characters)) {
-            for (int i = 0; i < 3; i++) {
-                chars.advance();
-            }
+            match(characters);
         } else {
+            chars.reset();
+            while (peek("[A-Za-z0-9.]*")) chars.reset();
             throw new ParseException(errorMsg, chars.index);
         }
 
         return chars.emit(Token.Type.CHARACTER);
     }
 
+    // Very similar to lexCharacter()
     public Token lexString() {
-        throw new UnsupportedOperationException(); //TODO
+        String errorMsg = "Invalid string";
+        String[] strings = {"\"", "", "\""};
+        String[] checkBackslash = {"\"", "\\\\"};
+
+        if (match(checkBackslash)) {
+            chars.advance();
+        } else if (peek(strings)) {
+            chars.advance();
+        } else {
+            throw new ParseException(errorMsg, chars.index);
+        }
+
+        return chars.emit(Token.Type.STRING);
     }
 
     public void lexEscape() {
@@ -111,6 +128,7 @@ public final class Lexer {
     }
 
     public Token lexOperator() {
+        // TODO != && == operators
         chars.advance();
         return chars.emit(Token.Type.OPERATOR);
     }
@@ -174,6 +192,12 @@ public final class Lexer {
         public void advance() {
             index++;
             length++;
+        }
+
+        public void moveTwo() {
+            for (int i = 0; i < 2; i++) {
+                advance();
+            }
         }
 
         // Used to reset CharStream for the start of a new Token

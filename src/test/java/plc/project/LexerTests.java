@@ -67,8 +67,20 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Alphabetic", "\'c\'", true),
                 Arguments.of("Newline Escape", "\'\\n\'", true),
+                Arguments.of("Backspace Escape", "'\\b'", true),
+                Arguments.of("Carriage Escape", "'\\r'", true),
+                Arguments.of("Tab Escape", "'\\t'", true),
+                Arguments.of("Single Quote Escape", "'\\''", true),
+                Arguments.of("Double Quote Escape", "'\\\"'", true),
+                Arguments.of("Backslash Escape", "'\\\\'", true),
                 Arguments.of("Empty", "\'\'", false),
-                Arguments.of("Multiple", "\'abc\'", false)
+                Arguments.of("Newline Char", "'\n'", false),
+                Arguments.of("Multiple", "\'abc\'", false),
+                Arguments.of("Unterminated", "'a", false),
+                Arguments.of("Uninitialized", "a'", false),
+                Arguments.of("Double Apostrophe", "'''", false),
+                Arguments.of("Carriage Return", "'\r'", false),
+                Arguments.of("Backslash", "'\\'", false)
         );
     }
 
