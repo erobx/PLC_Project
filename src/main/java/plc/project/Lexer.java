@@ -50,7 +50,7 @@ public final class Lexer {
      */
     public Token lexToken() {
         String[] identifiers = {"(@|[A-Za-z])"};
-        String[] integers = {"0|-?", "[1-9]", "[0-9]*"};
+        String[] integers = {"0|-?[1-9][0-9]*"};
         String[] decimals = {"-?(0|[1-9][0-9]*).[0-9]+"};
         String[] character = {"'"};
         String[] string = {"\""};
@@ -59,18 +59,23 @@ public final class Lexer {
         try {
             if (peek(identifiers)) {
                 return lexIdentifier();
+            } else if (peek(integers) || peek(decimals)) {
+                return lexNumber();
             } else if (peek(character)) {
                 return lexCharacter();
             } else if (peek(string)) {
                 return lexString();
             } else if (peek(operators)) {
                 return lexOperator();
+            } else {
+                throw new ParseException("Could not match token", chars.index);
             }
         } catch (ParseException ex) {
             System.out.println(ex.getMessage() + " at index: " + ex.getIndex());
+            // Skip over invalid character after failing to parse
             chars.reset();
         }
-
+        // Not sure what is required to return on failing to parse
         return null;
     }
 
@@ -82,7 +87,17 @@ public final class Lexer {
 
     // Combination of Integer and Decimal grammar
     public Token lexNumber() {
-        throw new UnsupportedOperationException(); //TODO
+        String[] integers = {"0|-?[1-9][0-9]*"};
+        String[] decimals = {"-?(0|[1-9][0-9]*).[0-9]+"};
+        if (peek(integers)) {
+            while (peek(integers)) chars.advance();
+            return chars.emit(Token.Type.INTEGER);
+        } else if (peek(decimals)) {
+            while (peek(decimals)) chars.advance();
+            return chars.emit(Token.Type.DECIMAL);
+        } else {
+            throw new ParseException("Invalid digit", chars.index);
+        }
     }
 
     public Token lexCharacter() {
@@ -90,16 +105,15 @@ public final class Lexer {
         String[] characters = {"'", "([^'\\n\\r\\\\]|\\\\[bnrt'\"\\\\])", "'"};
         String[] checkBackslash = {"'", "\\\\"};
 
-        if (match(checkBackslash)) {
-            boolean valid = match("[bnrt'\"\\\\]", "'");
-            if (!valid) {
-                throw new ParseException(errorMsg, chars.index);
-            }
+        if (peek(checkBackslash)) {
+            chars.advance();
+            lexEscape();
         } else if (peek(characters)) {
             match(characters);
         } else {
-            chars.reset();
+            chars.reset(); // Skip over first '
             while (peek("[A-Za-z0-9.]*")) chars.reset();
+            // Parse exception will advance past last '
             throw new ParseException(errorMsg, chars.index);
         }
 
@@ -124,7 +138,12 @@ public final class Lexer {
     }
 
     public void lexEscape() {
-        throw new UnsupportedOperationException(); //TODO
+        String errorMsg = "Invalid character";
+        match("\\\\");
+        boolean valid = match("[bnrt'\"\\\\]", "'");
+        if (!valid) {
+            throw new ParseException(errorMsg, chars.index);
+        }
     }
 
     public Token lexOperator() {

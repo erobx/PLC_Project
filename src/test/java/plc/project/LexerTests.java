@@ -80,7 +80,8 @@ public class LexerTests {
                 Arguments.of("Uninitialized", "a'", false),
                 Arguments.of("Double Apostrophe", "'''", false),
                 Arguments.of("Carriage Return", "'\r'", false),
-                Arguments.of("Backslash", "'\\'", false)
+                Arguments.of("Backslash", "'\\'", false),
+                Arguments.of("Invalid Escape", "'\\a'", false)
         );
     }
 
