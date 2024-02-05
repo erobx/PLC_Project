@@ -29,11 +29,11 @@ public final class Lexer {
      * whitespace where appropriate.
      */
     public List<Token> lex() {
-        List<Token> tokens = new ArrayList<Token>();
+        List<Token> tokens = new ArrayList<>();
         int offset = 0;
         while (chars.index < chars.input.length()) {
             switch (chars.get(offset)) {
-                case ' ', '\b', '\n', '\r', '\t': chars.advance(); chars.skip(); break;
+                case ' ', '\b', '\n', '\r', '\t': chars.reset(); break;
                 default: Token token = lexToken(); tokens.add(token); break;
             }
         }
@@ -52,16 +52,20 @@ public final class Lexer {
         String[] identifiers = {"(@|[A-Za-z])"};
         String[] integers = {"0|-?", "[1-9]", "[0-9]*"};
         String[] decimals = {"-?(0|[1-9][0-9]*).[0-9]+"};
-        String[] characters = {"[']", "([^'\\n\\r\\\\])", "[']",};
+        String[] character = {"'"};
         String[] operators = {"[!=]=?|&&||||."};
 
-        if (peek(identifiers)) {
-            return lexIdentifier();
-        } else if (peek(characters)) {
-            return lexCharacter();
-        } else if (peek(operators)) {
+        try {
+            if (peek(identifiers)) {
+                return lexIdentifier();
+            } else if (peek(character)) {
+                return lexCharacter();
+            } else if (peek(operators)) {
 //            System.out.println(match(operators));
-            return lexOperator();
+                return lexOperator();
+            }
+        } catch (ParseException ex) {
+            System.out.println(ex.getMessage() + " at index: " + ex.getIndex());
         }
 
         return null;
@@ -79,7 +83,22 @@ public final class Lexer {
     }
 
     public Token lexCharacter() {
-        chars.advance();
+        String[] characters = {"'", "([^'\\n\\r\\\\]|\\\\[bnrt'\"\\\\])", "'"};
+        String errorMsg = "Invalid character";
+        String[] checkBackslash = {"'", "\\\\"};
+
+        if (match(checkBackslash)) {
+            for (int i = 0; i < 2; i++) {
+                chars.advance();
+            }
+        } else if (peek(characters)) {
+            for (int i = 0; i < 3; i++) {
+                chars.advance();
+            }
+        } else {
+            throw new ParseException(errorMsg, chars.index);
+        }
+
         return chars.emit(Token.Type.CHARACTER);
     }
 
@@ -160,6 +179,12 @@ public final class Lexer {
         // Used to reset CharStream for the start of a new Token
         public void skip() {
             length = 0;
+        }
+
+        // Using to skip whitespace and manage CharStream state
+        public void reset() {
+            advance();
+            skip();
         }
 
         public Token emit(Token.Type type) {
