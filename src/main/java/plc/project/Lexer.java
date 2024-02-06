@@ -233,52 +233,41 @@ public final class Lexer {
     // Very similar to lexCharacter()
     public Token lexString() {
         String errorMsg = "Invalid string";
-        String[] strings = {"\"", "", "\""};
-        String[] checkBackslash = {"\"", "\\\\"};
-        //System.out.println("Char: " + chars.get(chars.index));
-        if (peek("\"")) { // Found a valid string start
-            chars.advance();
+
+        if (!peek("\"", "([^'\\n\\r\\\\]|\\\\[bnrt'\"\\\\])*")) {
+            return lexOperator();
         }
-        while(!peek("[\"\n\r]+")) { // Go through string, stopping at \n, \", or \r
+        // Can just match since we peeked in lexToken()
+        match("\"");
+
+        while(!peek("[\"\\n\\r]")) { // Go through string, stopping at \n, \", or \r
             if (peek("\\\\")) { // If escape sequence is found
-                chars.advance(); // Skip \
-                // After skipping backslash, check if the next character is part of a valid escape sequence
-                if (!peek("[\"\\\\bnrt]")) { // Escape character found, throw an error :(
-                    throw new ParseException("Invalid escape sequence", chars.index);
-                }
-                chars.advance(); // Skip the character after backslash
-            } else if (peek(".")) { // Not technically needed but good sanity check
-                chars.advance();
-            }else {
-                // if a valid string character isnt found, then this while loop ends and the string ending " is checked
+                lexEscape();
+            } else if (peek(".")) {
+                match(".");
+            } else {
                 break;
             }
         }
-        if (peek("\"")) { // Hopefully this string terminates with a "
-            chars.advance();
+        if (peek("\"")) {
+            match("\"");
         } else {
-            throw new ParseException(errorMsg, chars.index); // Otherwise the string is unterminated (or a mistake was made)
+            throw new ParseException(errorMsg, chars.index-1);
         }
 
         return chars.emit(Token.Type.STRING); // Return the string token
-        /* Old code
-        if (peek("\"")) {
-            chars.advance();
-        } else if (peek(strings)) {
-            chars.advance();
-        } else {
-            throw new ParseException(errorMsg, chars.index);
-        }
-        */
     }
 
     public void lexEscape() {
         String errorMsg = "Invalid escape character";
+        String escape = "[bnrt'\"\\\\]";
         match("\\\\");
-        if (peek("[bnrt'\"\\\\]", "'")) {
-            match("[bnrt'\"\\\\]", "'");
+        if (peek(escape, "'")) {
+            match(escape, "'");
+        } else if (peek(escape)) {
+            match(escape);
         } else {
-            throw new ParseException(errorMsg, chars.index);
+            throw new ParseException(errorMsg, chars.index-2);
         }
     }
 

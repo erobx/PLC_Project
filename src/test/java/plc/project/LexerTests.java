@@ -100,8 +100,10 @@ public class LexerTests {
                 Arguments.of("Empty", "\"\"", true),
                 Arguments.of("Alphabetic", "\"abc\"", true),
                 Arguments.of("Newline Escape", "\"Hello,\\nWorld\"", true),
+                Arguments.of("Uninitialized String", "world\"", false),
                 Arguments.of("Unterminated", "\"unterminated", false),
-                Arguments.of("Invalid Escape", "\"invalid\\escape\"", false)
+                Arguments.of("Invalid Escape", "\"invalid\\escape\"", false),
+                Arguments.of("Newline Character", "\"\n\"", false)
         );
     }
 
@@ -148,6 +150,10 @@ public class LexerTests {
                         new Token(Token.Type.INTEGER, "0", 1),
                         new Token(Token.Type.OPERATOR, ".", 2),
                         new Token(Token.Type.IDENTIFIER, "foo", 3)
+                )),
+                Arguments.of("Integer Identifier", "1fish2fish", Arrays.asList(
+                        new Token(Token.Type.INTEGER, "1", 0),
+                        new Token(Token.Type.IDENTIFIER, "fish2fish", 1)
                 ))
         );
     }
