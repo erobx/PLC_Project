@@ -97,7 +97,8 @@ public final class Lexer {
     // Combination of Integer and Decimal grammar
     public Token lexNumber() {
         // Handle negatives
-        if (peek("-", "0")) return lexOperator();
+        if (peek("-", "0", "[\\.]", "[A-Za-z]")) return lexOperator();
+        if (peek("-", "0", "[^\\.]")) return lexOperator();
         if (peek("-")) {
 //            int indexTemp = chars.index;
 //            int lengthTemp = chars.length;
