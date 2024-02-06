@@ -182,16 +182,41 @@ public final class Lexer {
         String errorMsg = "Invalid string";
         String[] strings = {"\"", "", "\""};
         String[] checkBackslash = {"\"", "\\\\"};
+        //System.out.println("Char: " + chars.get(chars.index));
+        if (peek("\"")) { // Found a valid string start
+            chars.advance();
+        }
+        while(!peek("[\"\n\r]+")) { // Go through string, stopping at \n, \", or \r
+            if (peek("\\\\")) { // If escape sequence is found
+                chars.advance(); // Skip \
+                // After skipping backslash, check if the next character is part of a valid escape sequence
+                if (!peek("[\"\\\\bnrt]")) { // Escape character found, throw an error :(
+                    throw new ParseException("Invalid escape sequence", chars.index);
+                }
+                chars.advance(); // Skip the character after backslash
+            } else if (peek(".")) { // Not technically needed but good sanity check
+                chars.advance();
+            }else {
+                // if a valid string character isnt found, then this while loop ends and the string ending " is checked
+                break;
+            }
+        }
+        if (peek("\"")) { // Hopefully this string terminates with a "
+            chars.advance();
+        } else {
+            throw new ParseException(errorMsg, chars.index); // Otherwise the string is unterminated (or a mistake was made)
+        }
 
-        if (match(checkBackslash)) {
+        return chars.emit(Token.Type.STRING); // Return the string token
+        /* Old code
+        if (peek("\"")) {
             chars.advance();
         } else if (peek(strings)) {
             chars.advance();
         } else {
             throw new ParseException(errorMsg, chars.index);
         }
-
-        return chars.emit(Token.Type.STRING);
+        */
     }
 
     public void lexEscape() {
@@ -205,6 +230,7 @@ public final class Lexer {
 
     public Token lexOperator() {
         // TODO != && == operators
+
         chars.advance();
         return chars.emit(Token.Type.OPERATOR);
     }
