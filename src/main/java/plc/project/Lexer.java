@@ -50,7 +50,7 @@ public final class Lexer {
      */
     public Token lexToken() {
         String[] identifiers = {"(@|[A-Za-z])"};
-        String[] integers = {"0|-?[1-9][0-9]*"};
+        String[] integers = {"0|-?|[1-9]"};
         String[] decimals = {"-?(0|[1-9][0-9]*).[0-9]+"};
         String[] character = {"'"};
         String[] string = {"\""};
@@ -81,16 +81,17 @@ public final class Lexer {
 
     public Token lexIdentifier() {
         String identifier = "[A-Za-z0-9_-]*";
+        match("@");
         while (peek(identifier)) chars.advance();
         return chars.emit(Token.Type.IDENTIFIER);
     }
 
     // Combination of Integer and Decimal grammar
     public Token lexNumber() {
-        String[] integers = {"0|-?[1-9][0-9]*"};
+        String[] integers = {"0|-?|[1-9]"};
         String[] decimals = {"-?(0|[1-9][0-9]*).[0-9]+"};
-        if (peek(integers)) {
-            while (peek(integers)) chars.advance();
+        if (match(integers)) {
+            while (peek("[0-9]*")) chars.advance();
             return chars.emit(Token.Type.INTEGER);
         } else if (peek(decimals)) {
             while (peek(decimals)) chars.advance();
@@ -138,7 +139,7 @@ public final class Lexer {
     }
 
     public void lexEscape() {
-        String errorMsg = "Invalid character";
+        String errorMsg = "Invalid escape character";
         match("\\\\");
         boolean valid = match("[bnrt'\"\\\\]", "'");
         if (!valid) {
