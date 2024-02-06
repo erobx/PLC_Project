@@ -158,7 +158,6 @@ public final class Lexer {
     }
 
     public Token lexCharacter() {
-        String errorMsg = "Invalid character";
         String[] characters = {"'", "([^'\\n\\r\\\\]|\\\\[bnrt'\"\\\\])", "'"};
         String[] checkBackslash = {"'", "\\\\"};
 
@@ -168,10 +167,7 @@ public final class Lexer {
         } else if (peek(characters)) {
             match(characters);
         } else {
-            chars.reset(); // Skip over first '
-            while (peek("[A-Za-z0-9.]*")) chars.reset();
-            // Parse exception will advance past last '
-            throw new ParseException(errorMsg, chars.index);
+            return lexOperator();
         }
 
         return chars.emit(Token.Type.CHARACTER);
