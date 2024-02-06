@@ -50,18 +50,25 @@ public final class Lexer {
      */
     public Token lexToken() {
         String[] identifiers = {"(@|[A-Za-z])"};
-        String[] integers = {"0|-?[1-9][0-9]*"};
-        String[] decimals = {"-?(0|[1-9][0-9]*).[0-9]+"};
+        String[] decimals = {"-?", "(0|[1-9])", "[0-9]*", "\\.", "[0-9]+"};
+        String[] numbers = {"-?", "(0|[1-9])", "\\.", "[0-9]+"};
+        String[] zeroOrNeg = {"0|-?"};
+        String[] integer = {"[1-9]"};
         String[] character = {"'"};
         String[] string = {"\""};
-        String[] operators = {"[!=]=?|&&||||."};
+        String[] operators = {"[!=]=?|&&||||.|\\(|\\)|;|-"};
 
         try {
             if (peek(identifiers)) {
                 return lexIdentifier();
-            } else if (peek(integers) || peek(decimals)) {
+            } else if (peek(decimals)) {
+                System.out.println("Sending " + chars.get(chars.index) + " to lexNumber");
                 return lexNumber();
-            } else if (peek(character)) {
+            } else if (peek(numbers)) {
+                return lexNumber();
+            } else if (peek(zeroOrNeg) || peek(integer) || peek("0")) {
+                return lexNumber();
+            } else if (peek(character) && (!peek("'", "['\\n\\r\\\\]", "'") || peek("'", "\\\\", "[bnrt'\"\\\\]", "'"))) {
                 return lexCharacter();
             } else if (peek(string)) {
                 return lexString();
@@ -72,6 +79,7 @@ public final class Lexer {
             }
         } catch (ParseException ex) {
             System.out.println(ex.getMessage() + " at index: " + ex.getIndex());
+            // Stop lexing???
             // Skip over invalid character after failing to parse
             chars.reset();
         }
@@ -81,40 +89,87 @@ public final class Lexer {
 
     public Token lexIdentifier() {
         String identifier = "[A-Za-z0-9_-]*";
+        match("@");
         while (peek(identifier)) chars.advance();
         return chars.emit(Token.Type.IDENTIFIER);
     }
 
     // Combination of Integer and Decimal grammar
     public Token lexNumber() {
-        String[] integers = {"0|-?[1-9][0-9]*"};
-        String[] decimals = {"-?(0|[1-9][0-9]*).[0-9]+"};
-        if (peek(integers)) {
-            while (peek(integers)) chars.advance();
-            return chars.emit(Token.Type.INTEGER);
-        } else if (peek(decimals)) {
-            while (peek(decimals)) chars.advance();
-            return chars.emit(Token.Type.DECIMAL);
-        } else {
-            throw new ParseException("Invalid digit", chars.index);
+        // Handle negatives
+        if (peek("-", "0")) return lexOperator();
+        if (peek("-")) {
+//            int indexTemp = chars.index;
+//            int lengthTemp = chars.length;
+            match("-");
+            // Handle special case of "-0.foo" TODO: Possibly make it handle longer leading numbers for -0.foo type cases
+            if (peek("0")) { // May need to modify for all numbers?
+                if (peek("\\.")) {
+                    chars.advance();
+//                    if (peek("[0-9]")) { // Normal decimal, let the normal logic handle this
+//                        chars.index = indexTemp;
+//                        chars.length = lengthTemp;
+//                        match("-");
+//                    } else { // Special case of -0.foo
+//                        chars.index = indexTemp;
+//                        chars.length = lengthTemp;
+//                        match("-");
+//                        return chars.emit(Token.Type.OPERATOR); // return the - as an operator
+//                    }
+                }
+            }
         }
+
+        // Separate leading zeroes into multiple tokens
+        if (peek("0", "[0-9]")) {
+            match("0");
+            return chars.emit(Token.Type.INTEGER);
+        }
+
+        // Check if it's an integer first
+
+        while (peek("[0-9]")) {
+            match("[0-9]"); // We hit an integer
+            if (peek("\\.", "[0-9]")) { // Decimal hit
+
+                match("\\.");
+                if (peek("[0-9]")) { // Integers after decimal
+                    while (peek("[0-9]")) {
+                        match("[0-9]");
+                    } // We have run out of integers after the decimal
+                    return chars.emit(Token.Type.DECIMAL);
+                } else if (peek("[A-Za-z]")) { // Handles . as an operator. We hit a letter after the decimal
+                    chars.index--; // this is important to handle 0.foo.
+                    chars.length--; // basically rewinds to right before the . and returns that.
+                    return chars.emit(Token.Type.INTEGER);
+                } else { // We hit a decimal but no integers after
+                    throw new ParseException("Invalid digit", chars.index);
+                }
+            } else if (peek("[0-9]")) { // We didn't hit a decimal, but we hit another integer
+                // let the while loop handle this
+            } else { // We didn't hit a decimal or another integer after this one
+                return chars.emit(Token.Type.INTEGER);
+            }
+        }
+
+        if (chars.length == 1) return chars.emit(Token.Type.OPERATOR); // Handle only - operator matching
+
+        throw new ParseException("Something went wrong", chars.index); // If we made it this far, something went wrong.
     }
 
     public Token lexCharacter() {
-        String errorMsg = "Invalid character";
         String[] characters = {"'", "([^'\\n\\r\\\\]|\\\\[bnrt'\"\\\\])", "'"};
-        String[] checkBackslash = {"'", "\\\\"};
+        String[] checkEscape = {"'", "\\\\", "[bnrt'\"\\\\]", "'"};
 
-        if (peek(checkBackslash)) {
-            chars.advance();
+        if (peek(checkEscape)) {
+            match("'");
             lexEscape();
+        } else if (peek("'", "['\\n\\r\\\\]", "'")) {
+            throw new ParseException("Invalid escape sequence", chars.index);
         } else if (peek(characters)) {
             match(characters);
         } else {
-            chars.reset(); // Skip over first '
-            while (peek("[A-Za-z0-9.]*")) chars.reset();
-            // Parse exception will advance past last '
-            throw new ParseException(errorMsg, chars.index);
+            return lexOperator();
         }
 
         return chars.emit(Token.Type.CHARACTER);
@@ -123,31 +178,63 @@ public final class Lexer {
     // Very similar to lexCharacter()
     public Token lexString() {
         String errorMsg = "Invalid string";
-        String[] strings = {"\"", "", "\""};
-        String[] checkBackslash = {"\"", "\\\\"};
 
-        if (match(checkBackslash)) {
-            chars.advance();
-        } else if (peek(strings)) {
-            chars.advance();
+        if (!peek("\"", "([^'\\n\\r\\\\]|\\\\[bnrt'\"\\\\])*")) {
+            return lexOperator();
+        }
+        // Can just match since we peeked in lexToken()
+        match("\"");
+
+        while(!peek("[\"\\n\\r]")) { // Go through string, stopping at \n, \", or \r
+            if (peek("\\\\")) { // If escape sequence is found
+                lexEscape();
+            } else if (peek(".")) {
+                match(".");
+            } else {
+                break;
+            }
+        }
+        if (peek("\"")) {
+            match("\"");
         } else {
-            throw new ParseException(errorMsg, chars.index);
+            throw new ParseException(errorMsg, chars.index-1);
         }
 
-        return chars.emit(Token.Type.STRING);
+        return chars.emit(Token.Type.STRING); // Return the string token
     }
 
     public void lexEscape() {
-        String errorMsg = "Invalid character";
+        String errorMsg = "Invalid escape character";
+        String escape = "[bnrt'\"\\\\]";
         match("\\\\");
-        boolean valid = match("[bnrt'\"\\\\]", "'");
-        if (!valid) {
-            throw new ParseException(errorMsg, chars.index);
+        if (peek(escape, "'")) {
+            match(escape, "'");
+        } else if (peek(escape)) {
+            match(escape);
+        } else {
+            throw new ParseException(errorMsg, chars.index-2);
         }
     }
 
     public Token lexOperator() {
-        // TODO != && == operators
+        // Handles !=
+        if (peek("!")) {
+            match("!");
+            if (peek("=")) {
+                match("="); // Yeah, we could probably do something more advanced, but this works for now
+                return chars.emit(Token.Type.OPERATOR);
+            }
+        }
+        if (peek("=")) {
+            match("=");
+            if (peek("=")) {
+                match("=");
+                return chars.emit(Token.Type.OPERATOR);
+            }else { // Added this to handle just the operator = on its own
+                return chars.emit(Token.Type.OPERATOR);
+            }
+        }
+
         chars.advance();
         return chars.emit(Token.Type.OPERATOR);
     }
