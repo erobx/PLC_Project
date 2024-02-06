@@ -62,6 +62,7 @@ public final class Lexer {
             if (peek(identifiers)) {
                 return lexIdentifier();
             } else if (peek(decimals)) {
+                System.out.println("Sending " + chars.get(chars.index) + " to lexNumber");
                 return lexNumber();
             } else if (peek(numbers)) {
                 return lexNumber();
@@ -100,6 +101,10 @@ public final class Lexer {
         String[] decimal = {"\\."};
         String[] onesPlace = {"-?(0|[1-9])", "\\."};
         String[] afterDecimal = {"[0-9]+"};
+        // Handle negatives
+        if (peek("-")) {
+            match("-");
+        }
 
         // Separate leading zeroes into multiple tokens
         if (peek("0", "[0-9]")) {
@@ -107,6 +112,27 @@ public final class Lexer {
             return chars.emit(Token.Type.INTEGER);
         }
 
+        // Check if it's an integer first
+
+        while (peek("[0-9]")) {
+            match("[0-9]"); // We hit an integer
+            if (peek("\\.")) { // Decimal hit
+                match("\\.");
+                if (peek("[0-9]")) { // Integers after decimal
+                    while (peek("[0-9]")) {
+                        match("[0-9]");
+                    } // We have run out of integers after the decimal
+                    return chars.emit(Token.Type.DECIMAL);
+                } else { // We hit a decimal but no integers after
+                    throw new ParseException("Invalid digit", chars.index);
+                }
+            }else if (peek("[0-9]")) { // We didn't hit a decimal, but we hit another integer
+                // let the while loop handle this
+            }else { // We didn't hit a decimal or another integer after this one
+                return chars.emit(Token.Type.INTEGER);
+            }
+        }
+/*
         if (peek("0", "\\.", "[^0-9]+")) {
             match("0");
             return chars.emit(Token.Type.INTEGER);
@@ -143,6 +169,8 @@ public final class Lexer {
             throw new ParseException("Invalid digit", chars.index);
         }
 
+ */
+
 //        if (peek(onesPlace)) {
 //            match(onesPlace);
 //            while (match(afterDecimal)) continue;
@@ -155,6 +183,7 @@ public final class Lexer {
 //            return chars.emit(Token.Type.INTEGER);
 //        } else {
 //        }
+        throw new ParseException("Something went wrong", chars.index); // If we made it this far, something went wrong.
     }
 
     public Token lexCharacter() {
