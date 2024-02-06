@@ -56,7 +56,7 @@ public final class Lexer {
         String[] integer = {"[1-9]"};
         String[] character = {"'"};
         String[] string = {"\""};
-        String[] operators = {"[!=]=?|&&||||."};
+        String[] operators = {"[!=]=?|&&||||\\."};
 
         try {
             if (peek(identifiers)) {
@@ -79,6 +79,7 @@ public final class Lexer {
             }
         } catch (ParseException ex) {
             System.out.println(ex.getMessage() + " at index: " + ex.getIndex());
+            // Stop lexing???
             // Skip over invalid character after failing to parse
             chars.reset();
         }
@@ -187,20 +188,18 @@ public final class Lexer {
     }
 
     public Token lexCharacter() {
-        String errorMsg = "Invalid character";
         String[] characters = {"'", "([^'\\n\\r\\\\]|\\\\[bnrt'\"\\\\])", "'"};
         String[] checkBackslash = {"'", "\\\\"};
 
         if (peek(checkBackslash)) {
             chars.advance();
             lexEscape();
+        } else if (peek("'", "['\\n\\r\\\\]", "'")) {
+            throw new ParseException("Invalid escape sequence", chars.index);
         } else if (peek(characters)) {
             match(characters);
         } else {
-            chars.reset(); // Skip over first '
-            while (peek("[A-Za-z0-9.]*")) chars.reset();
-            // Parse exception will advance past last '
-            throw new ParseException(errorMsg, chars.index);
+            return lexOperator();
         }
 
         return chars.emit(Token.Type.CHARACTER);
@@ -251,8 +250,9 @@ public final class Lexer {
     public void lexEscape() {
         String errorMsg = "Invalid escape character";
         match("\\\\");
-        boolean valid = match("[bnrt'\"\\\\]", "'");
-        if (!valid) {
+        if (peek("[bnrt'\"\\\\]", "'")) {
+            match("[bnrt'\"\\\\]", "'");
+        } else {
             throw new ParseException(errorMsg, chars.index);
         }
     }
