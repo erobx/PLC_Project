@@ -58,7 +58,7 @@ public class LexerTests {
                 Arguments.of("Multiple Digits", "123.456", true),
                 Arguments.of("Negative Decimal", "-1.0", true),
                 Arguments.of("Zero Decimal", "0.0", true),
-                Arguments.of("Negative Zero Decimal", "-0.0", false),
+                Arguments.of("Negative Zero Decimal", "-0.0", true),
                 Arguments.of("Trailing Decimal", "1.", false),
                 Arguments.of("Leading Decimal", ".5", false)
         );
@@ -162,6 +162,12 @@ public class LexerTests {
                 Arguments.of("Integer Identifier", "1fish2fish", Arrays.asList(
                         new Token(Token.Type.INTEGER, "1", 0),
                         new Token(Token.Type.IDENTIFIER, "fish2fish", 1)
+                )),
+                Arguments.of("Negative Zero", "-0.0 -0 -1",Arrays.asList(
+                        new Token(Token.Type.DECIMAL, "-0.0", 0),
+                        new Token(Token.Type.OPERATOR, "-", 5),
+                        new Token(Token.Type.INTEGER, "0", 6),
+                        new Token(Token.Type.INTEGER, "-1", 8)
                 )),
                 Arguments.of("Decimals", ".51.00.2.", Arrays.asList(
                         new Token(Token.Type.OPERATOR, ".", 0),
