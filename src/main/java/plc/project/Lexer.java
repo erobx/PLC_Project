@@ -56,7 +56,7 @@ public final class Lexer {
         String[] integer = {"[1-9]"};
         String[] character = {"'"};
         String[] string = {"\""};
-        String[] operators = {"[!=]=?|&&||||\\.|\\(|\\)"};
+        String[] operators = {"[!=]=?|&&||||\\.|\\(|\\)|;|-"};
 
         try {
             if (peek(identifiers)) {
@@ -104,7 +104,27 @@ public final class Lexer {
         String[] afterDecimal = {"[0-9]+"};
         // Handle negatives
         if (peek("-")) {
-            match("-");
+            int indexTemp = chars.index;
+            int lengthTemp = chars.length;
+            chars.advance();
+
+            // Handle special case of "-0.foo" TODO: Possibly make it handle longer leading numbers for -0.foo type cases
+            if (peek("0")) { // May need to modify for all numbers?
+                chars.advance();
+                if (peek("\\.")) {
+                    chars.advance();
+                    if (peek("[0-9]")) { // Normal decimal, let the normal logic handle this
+                        chars.index = indexTemp;
+                        chars.length = lengthTemp;
+                        match("-");
+                    } else { // Special case of -0.foo
+                        chars.index = indexTemp;
+                        chars.length = lengthTemp;
+                        match("-");
+                        return chars.emit(Token.Type.OPERATOR); // return the - as an operator
+                    }
+                }
+            }
         }
 
         // Separate leading zeroes into multiple tokens
@@ -118,13 +138,18 @@ public final class Lexer {
         while (peek("[0-9]")) {
             match("[0-9]"); // We hit an integer
             if (peek("\\.")) { // Decimal hit
+
                 match("\\.");
                 if (peek("[0-9]")) { // Integers after decimal
                     while (peek("[0-9]")) {
                         match("[0-9]");
                     } // We have run out of integers after the decimal
                     return chars.emit(Token.Type.DECIMAL);
-                } else { // We hit a decimal but no integers after
+                } else if (peek("[A-Za-z]")) { // Handles . as an operator. We hit a letter after the decimal
+                    chars.index--; // this is important to handle 0.foo.
+                    chars.length--; // basically rewinds to right before the . and returns that.
+                    return chars.emit(Token.Type.INTEGER);
+                }else { // We hit a decimal but no integers after
                     throw new ParseException("Invalid digit", chars.index);
                 }
             }else if (peek("[0-9]")) { // We didn't hit a decimal, but we hit another integer
@@ -270,6 +295,8 @@ public final class Lexer {
             match("=");
             if (peek("=")) {
                 match("=");
+                return chars.emit(Token.Type.OPERATOR);
+            }else { // Added this to handle just the operator = on its own
                 return chars.emit(Token.Type.OPERATOR);
             }
         }
