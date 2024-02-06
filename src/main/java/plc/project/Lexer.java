@@ -56,7 +56,7 @@ public final class Lexer {
         String[] integer = {"[1-9]"};
         String[] character = {"'"};
         String[] string = {"\""};
-        String[] operators = {"[!=]=?|&&||||\\."};
+        String[] operators = {"[!=]=?|&&||||\\.|\\(|\\)"};
 
         try {
             if (peek(identifiers)) {
@@ -133,7 +133,7 @@ public final class Lexer {
                 return chars.emit(Token.Type.INTEGER);
             }
         }
-/*
+/* Old code
         if (peek("0", "\\.", "[^0-9]+")) {
             match("0");
             return chars.emit(Token.Type.INTEGER);
@@ -258,7 +258,21 @@ public final class Lexer {
     }
 
     public Token lexOperator() {
-        // TODO != && == operators
+        // Handles !=
+        if (peek("!")) {
+            match("!");
+            if (peek("=")) {
+                match("="); // Yeah, we could probably do something more advanced, but this works for now
+                return chars.emit(Token.Type.OPERATOR);
+            }
+        }
+        if (peek("=")) {
+            match("=");
+            if (peek("=")) {
+                match("=");
+                return chars.emit(Token.Type.OPERATOR);
+            }
+        }
 
         chars.advance();
         return chars.emit(Token.Type.OPERATOR);
