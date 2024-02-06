@@ -40,7 +40,9 @@ public class LexerTests {
                 Arguments.of("Single Digit", "1", true),
                 Arguments.of("Multiple Digits", "12345", true),
                 Arguments.of("Negative", "-1", true),
-                Arguments.of("Leading Zero", "01", false)
+                Arguments.of("Trailing Zeros", "100", true),
+                Arguments.of("Leading Zero", "01", false),
+                Arguments.of("Many Zeros", "000001000", false)
         );
     }
 
@@ -140,6 +142,12 @@ public class LexerTests {
                         new Token(Token.Type.STRING, "\"Hello, World!\"", 6),
                         new Token(Token.Type.OPERATOR, ")", 21),
                         new Token(Token.Type.OPERATOR, ";", 22)
+                )),
+                Arguments.of("Weird Case", "-0.foo", Arrays.asList(
+                        new Token(Token.Type.OPERATOR, "-", 0),
+                        new Token(Token.Type.INTEGER, "0", 1),
+                        new Token(Token.Type.OPERATOR, ".", 2),
+                        new Token(Token.Type.IDENTIFIER, "foo", 3)
                 ))
         );
     }

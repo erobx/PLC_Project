@@ -50,8 +50,10 @@ public final class Lexer {
      */
     public Token lexToken() {
         String[] identifiers = {"(@|[A-Za-z])"};
-        String[] integers = {"0|-?|[1-9]"};
-        String[] decimals = {"-?(0|[1-9][0-9]*).[0-9]+"};
+        String[] decimals = {"-?", "(0|[1-9])", "[0-9]*", "\\.", "[0-9]+"};
+        String[] numbers = {"-?", "(0|[1-9])", "\\.", "[0-9]+"};
+        String[] zeroOrNeg = {"0|-?"};
+        String[] integer = {"[1-9]"};
         String[] character = {"'"};
         String[] string = {"\""};
         String[] operators = {"[!=]=?|&&||||."};
@@ -59,7 +61,11 @@ public final class Lexer {
         try {
             if (peek(identifiers)) {
                 return lexIdentifier();
-            } else if (peek(integers) || peek(decimals)) {
+            } else if (peek(decimals)) {
+                return lexNumber();
+            } else if (peek(numbers)) {
+                return lexNumber();
+            } else if (peek(zeroOrNeg) || peek(integer) || peek("0")) {
                 return lexNumber();
             } else if (peek(character)) {
                 return lexCharacter();
@@ -88,17 +94,67 @@ public final class Lexer {
 
     // Combination of Integer and Decimal grammar
     public Token lexNumber() {
-        String[] integers = {"0|-?|[1-9]"};
-        String[] decimals = {"-?(0|[1-9][0-9]*).[0-9]+"};
-        if (match(integers)) {
-            while (peek("[0-9]*")) chars.advance();
+        String[] integers = {"-?[1-9]"};
+        String beginDecimals = "(0|[1-9])";
+        String[] digits = {"[0-9]*"};
+        String[] decimal = {"\\."};
+        String[] onesPlace = {"-?(0|[1-9])", "\\."};
+        String[] afterDecimal = {"[0-9]+"};
+
+        // Separate leading zeroes into multiple tokens
+        if (peek("0", "[0-9]")) {
+            match("0");
             return chars.emit(Token.Type.INTEGER);
-        } else if (peek(decimals)) {
-            while (peek(decimals)) chars.advance();
+        }
+
+        if (peek("0", "\\.", "[^0-9]+")) {
+            match("0");
+            return chars.emit(Token.Type.INTEGER);
+        }
+
+        if (match(beginDecimals)) {
+            if (peek(digits)) {
+                while (match(digits)) {
+                    if (peek(decimal)) {
+                        match(decimal);
+                        break;
+                    }
+                }
+            } else if (peek(decimal)) {
+                match(decimal);
+            }
+            while (match(afterDecimal)) continue;
             return chars.emit(Token.Type.DECIMAL);
-        } else {
+        } else if (match("-?", beginDecimals)) {
+            if (peek(digits)) {
+                while (match(digits)) {
+                    if (peek(decimal)) {
+                        match(decimal);
+                        break;
+                    }
+                }
+            } else if (peek(decimal)) {
+                match(decimal);
+            }
+            while (match(afterDecimal)) continue;
+            return chars.emit(Token.Type.DECIMAL);
+        }
+        else {
             throw new ParseException("Invalid digit", chars.index);
         }
+
+//        if (peek(onesPlace)) {
+//            match(onesPlace);
+//            while (match(afterDecimal)) continue;
+//            return chars.emit(Token.Type.DECIMAL);
+//        } else if (peek(decimals)) {
+//            match(decimals);
+//            return chars.emit(Token.Type.DECIMAL);
+//        } else if (peek(integers)) {
+//            while (peek("[0-9]*")) chars.advance();
+//            return chars.emit(Token.Type.INTEGER);
+//        } else {
+//        }
     }
 
     public Token lexCharacter() {
