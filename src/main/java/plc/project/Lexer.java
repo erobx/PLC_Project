@@ -97,26 +97,25 @@ public final class Lexer {
     // Combination of Integer and Decimal grammar
     public Token lexNumber() {
         // Handle negatives
+        if (peek("-", "0")) return lexOperator();
         if (peek("-")) {
-            int indexTemp = chars.index;
-            int lengthTemp = chars.length;
-            chars.advance();
-
+//            int indexTemp = chars.index;
+//            int lengthTemp = chars.length;
+            match("-");
             // Handle special case of "-0.foo" TODO: Possibly make it handle longer leading numbers for -0.foo type cases
             if (peek("0")) { // May need to modify for all numbers?
-                chars.advance();
                 if (peek("\\.")) {
                     chars.advance();
-                    if (peek("[0-9]")) { // Normal decimal, let the normal logic handle this
-                        chars.index = indexTemp;
-                        chars.length = lengthTemp;
-                        match("-");
-                    } else { // Special case of -0.foo
-                        chars.index = indexTemp;
-                        chars.length = lengthTemp;
-                        match("-");
-                        return chars.emit(Token.Type.OPERATOR); // return the - as an operator
-                    }
+//                    if (peek("[0-9]")) { // Normal decimal, let the normal logic handle this
+//                        chars.index = indexTemp;
+//                        chars.length = lengthTemp;
+//                        match("-");
+//                    } else { // Special case of -0.foo
+//                        chars.index = indexTemp;
+//                        chars.length = lengthTemp;
+//                        match("-");
+//                        return chars.emit(Token.Type.OPERATOR); // return the - as an operator
+//                    }
                 }
             }
         }
@@ -143,7 +142,7 @@ public final class Lexer {
                     chars.index--; // this is important to handle 0.foo.
                     chars.length--; // basically rewinds to right before the . and returns that.
                     return chars.emit(Token.Type.INTEGER);
-                }else { // We hit a decimal but no integers after
+                } else { // We hit a decimal but no integers after
                     throw new ParseException("Invalid digit", chars.index);
                 }
             } else if (peek("[0-9]")) { // We didn't hit a decimal, but we hit another integer
@@ -152,6 +151,8 @@ public final class Lexer {
                 return chars.emit(Token.Type.INTEGER);
             }
         }
+
+        if (chars.length == 1) return chars.emit(Token.Type.OPERATOR); // Handle only - operator matching
 
         throw new ParseException("Something went wrong", chars.index); // If we made it this far, something went wrong.
     }

@@ -41,6 +41,7 @@ public class LexerTests {
                 Arguments.of("Multiple Digits", "12345", true),
                 Arguments.of("Negative", "-1", true),
                 Arguments.of("Trailing Zeros", "100", true),
+                Arguments.of("Multiple Negative", "-50912", true),
                 Arguments.of("Leading Zero", "01", false),
                 Arguments.of("Many Zeros", "000001000", false)
         );
@@ -56,6 +57,8 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Multiple Digits", "123.456", true),
                 Arguments.of("Negative Decimal", "-1.0", true),
+                Arguments.of("Zero Decimal", "0.0", true),
+                Arguments.of("Negative Zero Decimal", "-0.0", false),
                 Arguments.of("Trailing Decimal", "1.", false),
                 Arguments.of("Leading Decimal", ".5", false)
         );
@@ -118,6 +121,11 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Character", "(", true),
                 Arguments.of("Comparison", "!=", true),
+                Arguments.of("Money Symbol", "$", true),
+                Arguments.of("Addition", "+", true),
+                Arguments.of("Subtraction", "-", true),
+                Arguments.of("Multiplication", "*", true),
+                Arguments.of("Division", "\\", true),
                 Arguments.of("Space", " ", false),
                 Arguments.of("Tab", "\t", false)
         );
@@ -161,6 +169,32 @@ public class LexerTests {
                         new Token(Token.Type.OPERATOR, ".", 6),
                         new Token(Token.Type.INTEGER, "2", 7),
                         new Token(Token.Type.OPERATOR, ".", 8)
+                )),
+                Arguments.of("Negative Zero", "-0", Arrays.asList(
+                        new Token(Token.Type.OPERATOR, "-", 0),
+                        new Token(Token.Type.INTEGER, "0", 1)
+                )),
+                Arguments.of("Alternating Decimal", "1.2.3", Arrays.asList(
+                        new Token(Token.Type.DECIMAL, "1.2", 0),
+                        new Token(Token.Type.OPERATOR, ".", 3),
+                        new Token(Token.Type.INTEGER, "3", 4)
+                )),
+                Arguments.of("Separate Zeroes", "000100", Arrays.asList(
+                        new Token(Token.Type.INTEGER, "0", 0),
+                        new Token(Token.Type.INTEGER, "0", 1),
+                        new Token(Token.Type.INTEGER, "0", 2),
+                        new Token(Token.Type.INTEGER, "100", 3)
+                )),
+                Arguments.of("Combination", "5-32'1'.your3mother@6h (\"Test\")", Arrays.asList(
+                        new Token(Token.Type.INTEGER, "5", 0),
+                        new Token(Token.Type.INTEGER, "-32", 1),
+                        new Token(Token.Type.CHARACTER, "'1'", 4),
+                        new Token(Token.Type.OPERATOR, ".", 7),
+                        new Token(Token.Type.IDENTIFIER, "your3mother", 8),
+                        new Token(Token.Type.IDENTIFIER, "@6h", 19),
+                        new Token(Token.Type.OPERATOR, "(", 23),
+                        new Token(Token.Type.STRING, "\"Test\"", 24),
+                        new Token(Token.Type.OPERATOR, ")", 30)
                 ))
         );
     }
