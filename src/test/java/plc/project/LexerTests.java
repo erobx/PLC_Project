@@ -154,6 +154,13 @@ public class LexerTests {
                 Arguments.of("Integer Identifier", "1fish2fish", Arrays.asList(
                         new Token(Token.Type.INTEGER, "1", 0),
                         new Token(Token.Type.IDENTIFIER, "fish2fish", 1)
+                )),
+                Arguments.of("Decimals", ".51.00.2.", Arrays.asList(
+                        new Token(Token.Type.OPERATOR, ".", 0),
+                        new Token(Token.Type.DECIMAL, "51.00", 1),
+                        new Token(Token.Type.OPERATOR, ".", 6),
+                        new Token(Token.Type.INTEGER, "2", 7),
+                        new Token(Token.Type.OPERATOR, ".", 8)
                 ))
         );
     }

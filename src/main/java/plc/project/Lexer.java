@@ -96,12 +96,6 @@ public final class Lexer {
 
     // Combination of Integer and Decimal grammar
     public Token lexNumber() {
-        String[] integers = {"-?[1-9]"};
-        String beginDecimals = "(0|[1-9])";
-        String[] digits = {"[0-9]*"};
-        String[] decimal = {"\\."};
-        String[] onesPlace = {"-?(0|[1-9])", "\\."};
-        String[] afterDecimal = {"[0-9]+"};
         // Handle negatives
         if (peek("-")) {
             int indexTemp = chars.index;
@@ -137,7 +131,7 @@ public final class Lexer {
 
         while (peek("[0-9]")) {
             match("[0-9]"); // We hit an integer
-            if (peek("\\.")) { // Decimal hit
+            if (peek("\\.", "[0-9]")) { // Decimal hit
 
                 match("\\.");
                 if (peek("[0-9]")) { // Integers after decimal
@@ -152,63 +146,13 @@ public final class Lexer {
                 }else { // We hit a decimal but no integers after
                     throw new ParseException("Invalid digit", chars.index);
                 }
-            }else if (peek("[0-9]")) { // We didn't hit a decimal, but we hit another integer
+            } else if (peek("[0-9]")) { // We didn't hit a decimal, but we hit another integer
                 // let the while loop handle this
-            }else { // We didn't hit a decimal or another integer after this one
+            } else { // We didn't hit a decimal or another integer after this one
                 return chars.emit(Token.Type.INTEGER);
             }
         }
-/* Old code
-        if (peek("0", "\\.", "[^0-9]+")) {
-            match("0");
-            return chars.emit(Token.Type.INTEGER);
-        }
 
-        if (match(beginDecimals)) {
-            if (peek(digits)) {
-                while (match(digits)) {
-                    if (peek(decimal)) {
-                        match(decimal);
-                        break;
-                    }
-                }
-            } else if (peek(decimal)) {
-                match(decimal);
-            }
-            while (match(afterDecimal)) continue;
-            return chars.emit(Token.Type.DECIMAL);
-        } else if (match("-?", beginDecimals)) {
-            if (peek(digits)) {
-                while (match(digits)) {
-                    if (peek(decimal)) {
-                        match(decimal);
-                        break;
-                    }
-                }
-            } else if (peek(decimal)) {
-                match(decimal);
-            }
-            while (match(afterDecimal)) continue;
-            return chars.emit(Token.Type.DECIMAL);
-        }
-        else {
-            throw new ParseException("Invalid digit", chars.index);
-        }
-
- */
-
-//        if (peek(onesPlace)) {
-//            match(onesPlace);
-//            while (match(afterDecimal)) continue;
-//            return chars.emit(Token.Type.DECIMAL);
-//        } else if (peek(decimals)) {
-//            match(decimals);
-//            return chars.emit(Token.Type.DECIMAL);
-//        } else if (peek(integers)) {
-//            while (peek("[0-9]*")) chars.advance();
-//            return chars.emit(Token.Type.INTEGER);
-//        } else {
-//        }
         throw new ParseException("Something went wrong", chars.index); // If we made it this far, something went wrong.
     }
 
