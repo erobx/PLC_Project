@@ -1,5 +1,6 @@
 package plc.project;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -27,7 +28,23 @@ public final class Lexer {
      * whitespace where appropriate.
      */
     public List<Token> lex() {
-        throw new UnsupportedOperationException(); //TODO
+        List<Token> tokens = new ArrayList<>();
+        int offset = 0;
+        while (chars.index < chars.input.length()) {
+            switch (chars.get(offset)) {
+                case ' ', '\b', '\n', '\r', '\t': chars.reset(); break;
+                default:
+                    try {
+                        Token token = lexToken();
+                        tokens.add(token);
+                        break;
+                    } catch (ParseException ex) {
+                        System.out.println(ex.getMessage() + " at index: " + ex.getIndex());
+                        throw ex;
+                    }
+            }
+        }
+        return tokens;
     }
 
     /**
@@ -39,31 +56,197 @@ public final class Lexer {
      * by {@link #lex()}
      */
     public Token lexToken() {
-        throw new UnsupportedOperationException(); //TODO
+        String[] identifiers = {"(@|[A-Za-z])"};
+        String[] decimals = {"-?", "(0|[1-9])", "[0-9]*", "\\.", "[0-9]+"};
+        String[] numbers = {"-?", "(0|[1-9])", "\\.", "[0-9]+"};
+        String[] zeroOrNeg = {"0|-?"};
+        String[] integer = {"[1-9]"};
+        String[] character = {"'"};
+        String[] string = {"\""};
+        String[] operators = {"[!=]=?|&&||||.|\\(|\\)|;|-"};
+
+        try {
+            if (peek(identifiers)) {
+                return lexIdentifier();
+            } else if (peek(decimals)) {
+                return lexNumber();
+            } else if (peek(numbers)) {
+                return lexNumber();
+            } else if (peek(zeroOrNeg) || peek(integer) || peek("0")) {
+                return lexNumber();
+            } else if (peek(character)) {
+                return lexCharacter();
+            } else if (peek(string)) {
+                return lexString();
+            } else if (peek(operators)) {
+                return lexOperator();
+            } else {
+                throw new ParseException("Could not match token", chars.index);
+            }
+        } catch (ParseException ex) {
+            chars.reset();
+            throw ex;
+        }
     }
 
     public Token lexIdentifier() {
-        throw new UnsupportedOperationException(); //TODO
+        String identifier = "[A-Za-z0-9_-]*";
+        match("@");
+        while (peek(identifier)) chars.advance();
+        return chars.emit(Token.Type.IDENTIFIER);
     }
 
+    // Combination of Integer and Decimal grammar
     public Token lexNumber() {
-        throw new UnsupportedOperationException(); //TODO
+        // Leading zeros
+        if (peek("0", "[1-9]")) {
+            match("0");
+            return chars.emit(Token.Type.INTEGER);
+        }
+
+        // 0 with decimal
+        if (peek("-", "0", "\\.", "[0-9]")) {
+            match("-", "0", "\\.");
+            while (peek("[0-9]")) {
+                match("[0-9]");
+            }
+            return chars.emit(Token.Type.DECIMAL);
+        } else if (peek("0", "\\.", "[0-9]")) {
+            match("0", "\\.", "[0-9]");
+            while (peek("[0-9]")) {
+                match("[0-9]");
+            }
+            return chars.emit(Token.Type.DECIMAL);
+        }
+
+        // Check for -0, 0. and -0.
+        if (peek("-", "0")) {
+            return lexOperator();
+        }
+        if (peek("0", "\\.")) {
+            match("0");
+            return chars.emit(Token.Type.INTEGER);
+        }
+        if (peek("-", "0", "\\.")) {
+            return lexOperator();
+        }
+
+        // Negatives
+        if (peek("-")) {
+            match("-");
+        }
+
+        // Integers
+        if (peek("[1-9]")) {
+            match("[1-9]");
+            if (peek("[0-9]")) {
+                while (peek("[0-9]")) {
+                    match("[0-9]");
+                    // Decimal
+                    if (peek("\\.", "[0-9]")) {
+                        match("\\.");
+                        while (peek("[0-9]")) {
+                            match("[0-9]");
+                        }
+                        return chars.emit(Token.Type.DECIMAL);
+                    }
+                }
+            } else if (peek("\\.", "[0-9]")) {
+                match("\\.");
+                while (peek("[0-9]")) {
+                    match("[0-9]");
+                }
+                return chars.emit(Token.Type.DECIMAL);
+            }
+        }
+        if (peek("0")) {
+            match("0");
+        }
+        if (chars.get(-1) == '-') return chars.emit(Token.Type.OPERATOR);
+        return chars.emit(Token.Type.INTEGER);
     }
 
     public Token lexCharacter() {
-        throw new UnsupportedOperationException(); //TODO
+        String[] characters = {"'", "([^'\\n\\r\\\\]|\\\\[bnrt'\"\\\\])", "'"};
+        String[] checkEscape = {"'", "\\\\", "[bnrt'\"\\\\]", "'"};
+
+        if (peek(checkEscape)) {
+            match("'");
+            lexEscape();
+        } else if (peek("'", "['\\n\\r\\\\]", "'")) {
+            throw new ParseException("Invalid escape sequence", chars.index+1);
+        } else if (peek(characters)) {
+            match(characters);
+        } else if (peek("'", "'")) {
+            throw new ParseException("Invalid character", chars.index+1);
+        } else if (peek("'", ".", ".")) {
+            throw new ParseException("Invalid character", chars.index+2);
+        } else {
+            return lexOperator();
+        }
+
+        return chars.emit(Token.Type.CHARACTER);
     }
 
+    // Very similar to lexCharacter()
     public Token lexString() {
-        throw new UnsupportedOperationException(); //TODO
+        String errorMsg = "Invalid string";
+
+        // Can just match since we peeked in lexToken()
+        match("\"");
+
+        while (!peek("[\"\\n\\r]")) { // Go through string, stopping at \n, \", or \r
+            if (peek("\\\\")) { // If escape sequence is found
+                lexEscape();
+            } else if (peek(".")) {
+                match(".");
+            } else {
+                break;
+            }
+        }
+        if (peek("\"")) {
+            match("\"");
+        } else {
+            throw new ParseException(errorMsg, chars.index);
+        }
+
+        return chars.emit(Token.Type.STRING); // Return the string token
     }
 
     public void lexEscape() {
-        throw new UnsupportedOperationException(); //TODO
+        String errorMsg = "Invalid escape character";
+        String escape = "[bnrt'\"\\\\]";
+        match("\\\\");
+        if (peek(escape, "'")) {
+            match(escape, "'");
+        } else if (peek(escape)) {
+            match(escape);
+        } else {
+            throw new ParseException(errorMsg, chars.index-1);
+        }
     }
 
     public Token lexOperator() {
-        throw new UnsupportedOperationException(); //TODO
+        // Handles !=
+        if (peek("!")) {
+            match("!");
+            if (peek("=")) {
+                match("="); // Yeah, we could probably do something more advanced, but this works for now
+                return chars.emit(Token.Type.OPERATOR);
+            }
+        }
+        if (peek("=")) {
+            match("=");
+            if (peek("=")) {
+                match("=");
+                return chars.emit(Token.Type.OPERATOR);
+            } else { // Added this to handle just the operator = on its own
+                return chars.emit(Token.Type.OPERATOR);
+            }
+        }
+
+        chars.advance();
+        return chars.emit(Token.Type.OPERATOR);
     }
 
     /**
@@ -121,13 +304,21 @@ public final class Lexer {
             return input.charAt(index + offset);
         }
 
+        // Used to advance CharStream when matching a Token
         public void advance() {
             index++;
             length++;
         }
 
+        // Used to reset CharStream for the start of a new Token
         public void skip() {
             length = 0;
+        }
+
+        // Using to skip whitespace and manage CharStream state
+        public void reset() {
+            advance();
+            skip();
         }
 
         public Token emit(Token.Type type) {

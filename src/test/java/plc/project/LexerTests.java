@@ -22,8 +22,10 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Alphabetic", "getName", true),
                 Arguments.of("Alphanumeric", "thelegend27", true),
+                Arguments.of("Leading @", "@what3ver", true),
                 Arguments.of("Leading Hyphen", "-five", false),
-                Arguments.of("Leading Digit", "1fish2fish3fishbluefish", false)
+                Arguments.of("Leading Digit", "1fish2fish3fishbluefish", false),
+                Arguments.of("Non Leading @", "some@words", false)
         );
     }
 
@@ -38,7 +40,10 @@ public class LexerTests {
                 Arguments.of("Single Digit", "1", true),
                 Arguments.of("Multiple Digits", "12345", true),
                 Arguments.of("Negative", "-1", true),
-                Arguments.of("Leading Zero", "01", false)
+                Arguments.of("Trailing Zeros", "100", true),
+                Arguments.of("Multiple Negative", "-50912", true),
+                Arguments.of("Leading Zero", "01", false),
+                Arguments.of("Many Zeros", "000001000", false)
         );
     }
 
@@ -52,6 +57,8 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Multiple Digits", "123.456", true),
                 Arguments.of("Negative Decimal", "-1.0", true),
+                Arguments.of("Zero Decimal", "0.0", true),
+                Arguments.of("Negative Zero Decimal", "-0.0", true),
                 Arguments.of("Trailing Decimal", "1.", false),
                 Arguments.of("Leading Decimal", ".5", false)
         );
@@ -67,8 +74,21 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Alphabetic", "\'c\'", true),
                 Arguments.of("Newline Escape", "\'\\n\'", true),
+                Arguments.of("Backspace Escape", "'\\b'", true),
+                Arguments.of("Carriage Escape", "'\\r'", true),
+                Arguments.of("Tab Escape", "'\\t'", true),
+                Arguments.of("Single Quote Escape", "'\\''", true),
+                Arguments.of("Double Quote Escape", "'\\\"'", true),
+                Arguments.of("Backslash Escape", "'\\\\'", true),
                 Arguments.of("Empty", "\'\'", false),
-                Arguments.of("Multiple", "\'abc\'", false)
+                Arguments.of("Newline Char", "'\n'", false),
+                Arguments.of("Multiple", "\'abc\'", false),
+                Arguments.of("Unterminated", "'a", false),
+                Arguments.of("Uninitialized", "a'", false),
+                Arguments.of("Double Apostrophe", "'''", false),
+                Arguments.of("Carriage Return", "'\r'", false),
+                Arguments.of("Backslash", "'\\'", false),
+                Arguments.of("Invalid Escape", "'\\a'", false)
         );
     }
 
@@ -83,8 +103,10 @@ public class LexerTests {
                 Arguments.of("Empty", "\"\"", true),
                 Arguments.of("Alphabetic", "\"abc\"", true),
                 Arguments.of("Newline Escape", "\"Hello,\\nWorld\"", true),
+                Arguments.of("Uninitialized String", "world\"", false),
                 Arguments.of("Unterminated", "\"unterminated", false),
-                Arguments.of("Invalid Escape", "\"invalid\\escape\"", false)
+                Arguments.of("Invalid Escape", "\"invalid\\escape\"", false),
+                Arguments.of("Newline Character", "\"\n\"", false)
         );
     }
 
@@ -99,6 +121,11 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Character", "(", true),
                 Arguments.of("Comparison", "!=", true),
+                Arguments.of("Money Symbol", "$", true),
+                Arguments.of("Addition", "+", true),
+                Arguments.of("Subtraction", "-", true),
+                Arguments.of("Multiplication", "*", true),
+                Arguments.of("Division", "\\", true),
                 Arguments.of("Space", " ", false),
                 Arguments.of("Tab", "\t", false)
         );
@@ -125,6 +152,60 @@ public class LexerTests {
                         new Token(Token.Type.STRING, "\"Hello, World!\"", 6),
                         new Token(Token.Type.OPERATOR, ")", 21),
                         new Token(Token.Type.OPERATOR, ";", 22)
+                )),
+                Arguments.of("Weird Case", "-0.foo", Arrays.asList(
+                        new Token(Token.Type.OPERATOR, "-", 0),
+                        new Token(Token.Type.INTEGER, "0", 1),
+                        new Token(Token.Type.OPERATOR, ".", 2),
+                        new Token(Token.Type.IDENTIFIER, "foo", 3)
+                )),
+                Arguments.of("Subtraction", "5-b", Arrays.asList(
+                        new Token(Token.Type.INTEGER, "5", 0),
+                        new Token(Token.Type.OPERATOR, "-", 1),
+                        new Token(Token.Type.IDENTIFIER, "b", 2)
+                )),
+                Arguments.of("Integer Identifier", "1fish2fish", Arrays.asList(
+                        new Token(Token.Type.INTEGER, "1", 0),
+                        new Token(Token.Type.IDENTIFIER, "fish2fish", 1)
+                )),
+                Arguments.of("Negative Zero", "-0.0 -0 -1",Arrays.asList(
+                        new Token(Token.Type.DECIMAL, "-0.0", 0),
+                        new Token(Token.Type.OPERATOR, "-", 5),
+                        new Token(Token.Type.INTEGER, "0", 6),
+                        new Token(Token.Type.INTEGER, "-1", 8)
+                )),
+                Arguments.of("Decimals", ".51.00.2.", Arrays.asList(
+                        new Token(Token.Type.OPERATOR, ".", 0),
+                        new Token(Token.Type.DECIMAL, "51.00", 1),
+                        new Token(Token.Type.OPERATOR, ".", 6),
+                        new Token(Token.Type.INTEGER, "2", 7),
+                        new Token(Token.Type.OPERATOR, ".", 8)
+                )),
+                Arguments.of("Negative Zero", "-0", Arrays.asList(
+                        new Token(Token.Type.OPERATOR, "-", 0),
+                        new Token(Token.Type.INTEGER, "0", 1)
+                )),
+                Arguments.of("Alternating Decimal", "1.2.3", Arrays.asList(
+                        new Token(Token.Type.DECIMAL, "1.2", 0),
+                        new Token(Token.Type.OPERATOR, ".", 3),
+                        new Token(Token.Type.INTEGER, "3", 4)
+                )),
+                Arguments.of("Separate Zeroes", "000100", Arrays.asList(
+                        new Token(Token.Type.INTEGER, "0", 0),
+                        new Token(Token.Type.INTEGER, "0", 1),
+                        new Token(Token.Type.INTEGER, "0", 2),
+                        new Token(Token.Type.INTEGER, "100", 3)
+                )),
+                Arguments.of("Combination", "5-32'1'.your3mother@6h (\"Test\")", Arrays.asList(
+                        new Token(Token.Type.INTEGER, "5", 0),
+                        new Token(Token.Type.INTEGER, "-32", 1),
+                        new Token(Token.Type.CHARACTER, "'1'", 4),
+                        new Token(Token.Type.OPERATOR, ".", 7),
+                        new Token(Token.Type.IDENTIFIER, "your3mother", 8),
+                        new Token(Token.Type.IDENTIFIER, "@6h", 19),
+                        new Token(Token.Type.OPERATOR, "(", 23),
+                        new Token(Token.Type.STRING, "\"Test\"", 24),
+                        new Token(Token.Type.OPERATOR, ")", 30)
                 ))
         );
     }
@@ -134,6 +215,30 @@ public class LexerTests {
         ParseException exception = Assertions.assertThrows(ParseException.class,
                 () -> new Lexer("\"unterminated").lex());
         Assertions.assertEquals(13, exception.getIndex());
+
+        exception = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("\"invalid\\escape\"").lex());
+        Assertions.assertEquals(8, exception.getIndex());
+
+        exception = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("w\"s").lex());
+        Assertions.assertEquals(3, exception.getIndex());
+
+        exception = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("\"\"\"").lex());
+        Assertions.assertEquals(3, exception.getIndex());
+
+        exception = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("''").lex());
+        Assertions.assertEquals(1, exception.getIndex());
+
+        exception = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("'abc'").lex());
+        Assertions.assertEquals(2, exception.getIndex());
+
+        exception = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("'\n'").lex());
+        Assertions.assertEquals(1, exception.getIndex());
     }
 
     /**
