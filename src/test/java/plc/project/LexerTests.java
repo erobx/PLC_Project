@@ -159,6 +159,11 @@ public class LexerTests {
                         new Token(Token.Type.OPERATOR, ".", 2),
                         new Token(Token.Type.IDENTIFIER, "foo", 3)
                 )),
+                Arguments.of("Subtraction", "5-b", Arrays.asList(
+                        new Token(Token.Type.INTEGER, "5", 0),
+                        new Token(Token.Type.OPERATOR, "-", 1),
+                        new Token(Token.Type.IDENTIFIER, "b", 2)
+                )),
                 Arguments.of("Integer Identifier", "1fish2fish", Arrays.asList(
                         new Token(Token.Type.INTEGER, "1", 0),
                         new Token(Token.Type.IDENTIFIER, "fish2fish", 1)
