@@ -34,7 +34,15 @@ public final class Lexer {
         while (chars.index < chars.input.length()) {
             switch (chars.get(offset)) {
                 case ' ', '\b', '\n', '\r', '\t': chars.reset(); break;
-                default: Token token = lexToken(); tokens.add(token); break;
+                default:
+                    try {
+                        Token token = lexToken();
+                        tokens.add(token);
+                        break;
+                    } catch (ParseException ex) {
+                        System.out.println(ex.getMessage() + " at index: " + ex.getIndex());
+                        throw ex;
+                    }
             }
         }
         return tokens;
@@ -62,7 +70,6 @@ public final class Lexer {
             if (peek(identifiers)) {
                 return lexIdentifier();
             } else if (peek(decimals)) {
-                System.out.println("Sending " + chars.get(chars.index) + " to lexNumber");
                 return lexNumber();
             } else if (peek(numbers)) {
                 return lexNumber();
@@ -78,13 +85,9 @@ public final class Lexer {
                 throw new ParseException("Could not match token", chars.index);
             }
         } catch (ParseException ex) {
-            System.out.println(ex.getMessage() + " at index: " + ex.getIndex());
-            // Stop lexing???
-            // Skip over invalid character after failing to parse
             chars.reset();
+            throw ex;
         }
-        // Not sure what is required to return on failing to parse
-        return null;
     }
 
     public Token lexIdentifier() {
@@ -204,7 +207,7 @@ public final class Lexer {
         if (peek("\"")) {
             match("\"");
         } else {
-            throw new ParseException(errorMsg, chars.index-1);
+            throw new ParseException(errorMsg, chars.index);
         }
 
         return chars.emit(Token.Type.STRING); // Return the string token
