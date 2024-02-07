@@ -215,6 +215,30 @@ public class LexerTests {
         ParseException exception = Assertions.assertThrows(ParseException.class,
                 () -> new Lexer("\"unterminated").lex());
         Assertions.assertEquals(13, exception.getIndex());
+
+        exception = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("\"invalid\\escape\"").lex());
+        Assertions.assertEquals(8, exception.getIndex());
+
+        exception = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("w\"s").lex());
+        Assertions.assertEquals(3, exception.getIndex());
+
+        exception = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("\"\"\"").lex());
+        Assertions.assertEquals(3, exception.getIndex());
+
+        exception = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("''").lex());
+        Assertions.assertEquals(1, exception.getIndex());
+
+        exception = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("'abc'").lex());
+        Assertions.assertEquals(2, exception.getIndex());
+
+        exception = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("'\n'").lex());
+        Assertions.assertEquals(1, exception.getIndex());
     }
 
     /**

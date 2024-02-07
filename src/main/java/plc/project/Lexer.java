@@ -1,7 +1,6 @@
 package plc.project;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -75,7 +74,7 @@ public final class Lexer {
                 return lexNumber();
             } else if (peek(zeroOrNeg) || peek(integer) || peek("0")) {
                 return lexNumber();
-            } else if (peek(character) && (!peek("'", "['\\n\\r\\\\]", "'") || peek("'", "\\\\", "[bnrt'\"\\\\]", "'"))) {
+            } else if (peek(character)) {
                 return lexCharacter();
             } else if (peek(string)) {
                 return lexString();
@@ -175,9 +174,13 @@ public final class Lexer {
             match("'");
             lexEscape();
         } else if (peek("'", "['\\n\\r\\\\]", "'")) {
-            throw new ParseException("Invalid escape sequence", chars.index);
+            throw new ParseException("Invalid escape sequence", chars.index+1);
         } else if (peek(characters)) {
             match(characters);
+        } else if (peek("'", "'")) {
+            throw new ParseException("Invalid character", chars.index+1);
+        } else if (peek("'", ".", ".")) {
+            throw new ParseException("Invalid character", chars.index+2);
         } else {
             return lexOperator();
         }
@@ -189,13 +192,10 @@ public final class Lexer {
     public Token lexString() {
         String errorMsg = "Invalid string";
 
-        if (!peek("\"", "([^'\\n\\r\\\\]|\\\\[bnrt'\"\\\\])*")) {
-            return lexOperator();
-        }
         // Can just match since we peeked in lexToken()
         match("\"");
 
-        while(!peek("[\"\\n\\r]")) { // Go through string, stopping at \n, \", or \r
+        while (!peek("[\"\\n\\r]")) { // Go through string, stopping at \n, \", or \r
             if (peek("\\\\")) { // If escape sequence is found
                 lexEscape();
             } else if (peek(".")) {
@@ -222,7 +222,7 @@ public final class Lexer {
         } else if (peek(escape)) {
             match(escape);
         } else {
-            throw new ParseException(errorMsg, chars.index-2);
+            throw new ParseException(errorMsg, chars.index-1);
         }
     }
 
