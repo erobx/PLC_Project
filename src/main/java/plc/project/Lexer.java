@@ -29,9 +29,8 @@ public final class Lexer {
      */
     public List<Token> lex() {
         List<Token> tokens = new ArrayList<>();
-        int offset = 0;
         while (chars.index < chars.input.length()) {
-            switch (chars.get(offset)) {
+            switch (chars.get(0)) {
                 case ' ', '\b', '\n', '\r', '\t': chars.reset(); break;
                 default:
                     try {
@@ -63,7 +62,7 @@ public final class Lexer {
         String[] integer = {"[1-9]"};
         String[] character = {"'"};
         String[] string = {"\""};
-        String[] operators = {"[!=]=?|&&||||.|\\(|\\)|;|-"};
+        String[] operators = {"[!=]=?|&|[|]|.|\\(|\\)|;|-"};
 
         try {
             if (peek(identifiers)) {
@@ -182,7 +181,7 @@ public final class Lexer {
         } else if (peek("'", ".", ".")) {
             throw new ParseException("Invalid character", chars.index+2);
         } else {
-            return lexOperator();
+            throw new ParseException("Invalid character", chars.index+1);
         }
 
         return chars.emit(Token.Type.CHARACTER);
@@ -222,27 +221,30 @@ public final class Lexer {
         } else if (peek(escape)) {
             match(escape);
         } else {
-            throw new ParseException(errorMsg, chars.index-1);
+            throw new ParseException(errorMsg, chars.index);
         }
     }
 
     public Token lexOperator() {
         // Handles !=
-        if (peek("!")) {
-            match("!");
-            if (peek("=")) {
-                match("="); // Yeah, we could probably do something more advanced, but this works for now
-                return chars.emit(Token.Type.OPERATOR);
-            }
+        if (peek("!", "=")) {
+            match("!", "=");
+            return chars.emit(Token.Type.OPERATOR);
         }
-        if (peek("=")) {
-            match("=");
-            if (peek("=")) {
-                match("=");
-                return chars.emit(Token.Type.OPERATOR);
-            } else { // Added this to handle just the operator = on its own
-                return chars.emit(Token.Type.OPERATOR);
-            }
+        // ==
+        if (peek("=", "=")) {
+            match("=", "=");
+            return chars.emit(Token.Type.OPERATOR);
+        }
+        // &&
+        if (peek("&", "&")) {
+            match("&", "&");
+            return chars.emit(Token.Type.OPERATOR);
+        }
+        // ||
+        if (peek("[|]", "[|]")) {
+            match("[|]", "[|]");
+            return chars.emit(Token.Type.OPERATOR);
         }
 
         chars.advance();

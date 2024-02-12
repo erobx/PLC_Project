@@ -126,6 +126,8 @@ public class LexerTests {
                 Arguments.of("Subtraction", "-", true),
                 Arguments.of("Multiplication", "*", true),
                 Arguments.of("Division", "\\", true),
+                Arguments.of("And", "&&", true),
+                Arguments.of("Or", "||", true),
                 Arguments.of("Space", " ", false),
                 Arguments.of("Tab", "\t", false)
         );
@@ -138,7 +140,111 @@ public class LexerTests {
     }
 
     private static Stream<Arguments> testExamples() {
+        String fizzBuzz = new String("LET i = 1;\nWHILE i != 100 DO\n    IF rem(i, 3) == 0 && rem(i, 5) == 0 DO\n        print(\"FizzBuzz\");\n    ELSE IF rem(i, 3) == 0 DO\n        print(\"Fizz\");\n    ELSE IF rem(i, 5) == 0 DO\n        print(\"Buzz\");\n    ELSE\n        print(i);\n    END END END\n    i = i + 1;\nEND");
+        String source = new String("VAR i = -1 : Integer;\nVAL inc = 2 : Integer;\nFUN foo() DO\n    WHILE i != 1 DO\n        IF i > 0 DO\n            print(\"bar\");\n        END\n        i = i + inc;\n    END\nEND");
+        List<Token> fbTokens = Arrays.asList(
+                //LET i = 1;
+                new Token(Token.Type.IDENTIFIER, "LET", 0),
+                new Token(Token.Type.IDENTIFIER, "i", 4),
+                new Token(Token.Type.OPERATOR, "=", 6),
+                new Token(Token.Type.INTEGER, "1", 8),
+                new Token(Token.Type.OPERATOR, ";", 9),
+
+                //WHILE i != 100 DO
+                new Token(Token.Type.IDENTIFIER, "WHILE", 11),
+                new Token(Token.Type.IDENTIFIER, "i", 17),
+                new Token(Token.Type.OPERATOR, "!=", 19),
+                new Token(Token.Type.INTEGER, "100", 22),
+                new Token(Token.Type.IDENTIFIER, "DO", 26),
+
+                //    IF rem(i, 3) == 0 && rem(i, 5) == 0 DO
+                new Token(Token.Type.IDENTIFIER, "IF", 33),
+                new Token(Token.Type.IDENTIFIER, "rem", 36),
+                new Token(Token.Type.OPERATOR, "(", 39),
+                new Token(Token.Type.IDENTIFIER, "i", 40),
+                new Token(Token.Type.OPERATOR, ",", 41),
+                new Token(Token.Type.INTEGER, "3", 43),
+                new Token(Token.Type.OPERATOR, ")", 44),
+                new Token(Token.Type.OPERATOR, "==", 46),
+                new Token(Token.Type.INTEGER, "0", 49),
+                new Token(Token.Type.OPERATOR, "&&", 51),
+                new Token(Token.Type.IDENTIFIER, "rem", 54),
+                new Token(Token.Type.OPERATOR, "(", 57),
+                new Token(Token.Type.IDENTIFIER, "i", 58),
+                new Token(Token.Type.OPERATOR, ",", 59),
+                new Token(Token.Type.INTEGER, "5", 61),
+                new Token(Token.Type.OPERATOR, ")", 62),
+                new Token(Token.Type.OPERATOR, "==", 64),
+                new Token(Token.Type.INTEGER, "0", 67),
+                new Token(Token.Type.IDENTIFIER, "DO", 69)
+        );
+        List<Token> input = Arrays.asList(
+                //VAR i = -1 : Integer;
+                new Token(Token.Type.IDENTIFIER, "VAR", 0),
+                new Token(Token.Type.IDENTIFIER, "i", 4),
+                new Token(Token.Type.OPERATOR, "=", 6),
+                new Token(Token.Type.INTEGER, "-1", 8),
+                new Token(Token.Type.OPERATOR, ":", 11),
+                new Token(Token.Type.IDENTIFIER, "Integer", 13),
+                new Token(Token.Type.OPERATOR, ";", 20),
+
+                //VAL inc = 2 : Integer;
+                new Token(Token.Type.IDENTIFIER, "VAL", 22),
+                new Token(Token.Type.IDENTIFIER, "inc", 26),
+                new Token(Token.Type.OPERATOR, "=", 30),
+                new Token(Token.Type.INTEGER, "2", 32),
+                new Token(Token.Type.OPERATOR, ":", 34),
+                new Token(Token.Type.IDENTIFIER, "Integer", 36),
+                new Token(Token.Type.OPERATOR, ";", 43),
+
+                //DEF foo() DO
+                new Token(Token.Type.IDENTIFIER, "FUN", 45),
+                new Token(Token.Type.IDENTIFIER, "foo", 49),
+                new Token(Token.Type.OPERATOR, "(", 52),
+                new Token(Token.Type.OPERATOR, ")", 53),
+                new Token(Token.Type.IDENTIFIER, "DO", 55),
+
+                //    WHILE i != 1 DO
+                new Token(Token.Type.IDENTIFIER, "WHILE", 62),
+                new Token(Token.Type.IDENTIFIER, "i", 68),
+                new Token(Token.Type.OPERATOR, "!=", 70),
+                new Token(Token.Type.INTEGER, "1", 73),
+                new Token(Token.Type.IDENTIFIER, "DO", 75),
+
+                //        IF i > 0 DO
+                new Token(Token.Type.IDENTIFIER, "IF", 86),
+                new Token(Token.Type.IDENTIFIER, "i", 89),
+                new Token(Token.Type.OPERATOR, ">", 91),
+                new Token(Token.Type.INTEGER, "0", 93),
+                new Token(Token.Type.IDENTIFIER, "DO", 95),
+
+                //            print(\"bar\");
+                new Token(Token.Type.IDENTIFIER, "print", 110),
+                new Token(Token.Type.OPERATOR, "(", 115),
+                new Token(Token.Type.STRING, "\"bar\"", 116),
+                new Token(Token.Type.OPERATOR, ")", 121),
+                new Token(Token.Type.OPERATOR, ";", 122),
+
+                //        END
+                new Token(Token.Type.IDENTIFIER, "END", 132),
+
+                //        i = i + inc;
+                new Token(Token.Type.IDENTIFIER, "i",144),
+                new Token(Token.Type.OPERATOR, "=", 146),
+                new Token(Token.Type.IDENTIFIER, "i", 148),
+                new Token(Token.Type.OPERATOR, "+", 150),
+                new Token(Token.Type.IDENTIFIER, "inc", 152),
+                new Token(Token.Type.OPERATOR, ";", 155),
+
+                //    END
+                new Token(Token.Type.IDENTIFIER, "END", 161),
+
+                //END
+                new Token(Token.Type.IDENTIFIER, "END", 165)
+        );
         return Stream.of(
+                Arguments.of("Program", source, input),
+                Arguments.of("FizzBuzz", fizzBuzz, fbTokens),
                 Arguments.of("Example 1", "LET x = 5;", Arrays.asList(
                         new Token(Token.Type.IDENTIFIER, "LET", 0),
                         new Token(Token.Type.IDENTIFIER, "x", 4),
@@ -218,7 +324,11 @@ public class LexerTests {
 
         exception = Assertions.assertThrows(ParseException.class,
                 () -> new Lexer("\"invalid\\escape\"").lex());
-        Assertions.assertEquals(8, exception.getIndex());
+        Assertions.assertEquals(9, exception.getIndex());
+
+        exception = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("\"a\\u0000b\\u12ABc\"").lex());
+        Assertions.assertEquals(3, exception.getIndex());
 
         exception = Assertions.assertThrows(ParseException.class,
                 () -> new Lexer("w\"s").lex());
@@ -238,6 +348,10 @@ public class LexerTests {
 
         exception = Assertions.assertThrows(ParseException.class,
                 () -> new Lexer("'\n'").lex());
+        Assertions.assertEquals(1, exception.getIndex());
+
+        exception = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("'c").lex());
         Assertions.assertEquals(1, exception.getIndex());
     }
 
