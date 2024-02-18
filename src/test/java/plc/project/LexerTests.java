@@ -140,7 +140,7 @@ public class LexerTests {
     }
 
     private static Stream<Arguments> testExamples() {
-        String fizzBuzz = new String("LET i = 1;\nWHILE i != 100 DO\n    IF rem(i, 3) == 0 && rem(i, 5) == 0 DO\n        print(\"FizzBuzz\");\n    ELSE IF rem(i, 3) == 0 DO\n        print(\"Fizz\");\n    ELSE IF rem(i, 5) == 0 DO\n        print(\"Buzz\");\n    ELSE\n        print(i);\n    END END END\n    i = i + 1;\nEND");
+        String fizzBuzz = new String("LET i = 1;\nWHILE i != 100 DO\n    IF rem(i, 3) == 0 && rem(i, 5) == 0 DO");
         String source = new String("VAR i = -1 : Integer;\nVAL inc = 2 : Integer;\nFUN foo() DO\n    WHILE i != 1 DO\n        IF i > 0 DO\n            print(\"bar\");\n        END\n        i = i + inc;\n    END\nEND");
         List<Token> fbTokens = Arrays.asList(
                 //LET i = 1;
