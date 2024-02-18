@@ -6,6 +6,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import javax.swing.text.html.Option;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -37,6 +38,14 @@ final class ParserExpressionTests {
                                 new Token(Token.Type.OPERATOR, ";", 6)
                         ),
                         new Ast.Statement.Expression(new Ast.Expression.Function("name", Arrays.asList()))
+                ),
+                Arguments.of("Variable",
+                        Arrays.asList(
+                                //expr;
+                                new Token(Token.Type.IDENTIFIER, "expr", 0),
+                                new Token(Token.Type.OPERATOR, ";", 4)
+                        ),
+                        new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "expr"))
                 )
         );
     }
@@ -104,6 +113,14 @@ final class ParserExpressionTests {
                 Arguments.of("Multiple Escapes",
                         Arrays.asList(new Token(Token.Type.STRING, "\"Hel\\nWor\\rld\\'\"", 0)),
                         new Ast.Expression.Literal("Hel\nWor\rld'")
+                ),
+                Arguments.of("Vertical Tab",
+                        Arrays.asList(new Token(Token.Type.STRING, "\"Hel\\u0000bWor\"", 0)),
+                        new Ast.Expression.Literal("Hel\u0000bWor")
+                ),
+                Arguments.of("Form feed",
+                        Arrays.asList(new Token(Token.Type.STRING, "\"Hel\\fWor\"", 0)),
+                        new Ast.Expression.Literal("Hel\fWor")
                 )
         );
     }
@@ -196,6 +213,23 @@ final class ParserExpressionTests {
                         new Ast.Expression.Binary("*",
                                 new Ast.Expression.Access(Optional.empty(), "expr1"),
                                 new Ast.Expression.Access(Optional.empty(), "expr2")
+                        )
+                ),
+                Arguments.of("Addition Multiplication",
+                        Arrays.asList(
+                                //expr1 + expr2 * expr3
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "+", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 8),
+                                new Token(Token.Type.OPERATOR, "*", 14),
+                                new Token(Token.Type.IDENTIFIER, "expr3", 16)
+                        ),
+                        new Ast.Expression.Binary("+",
+                                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                new Ast.Expression.Binary("*",
+                                        new Ast.Expression.Access(Optional.empty(), "expr2"),
+                                        new Ast.Expression.Access(Optional.empty(), "expr3")
+                                )
                         )
                 )
         );

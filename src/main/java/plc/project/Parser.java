@@ -101,10 +101,17 @@ public final class Parser {
         } else {
             Ast.Expression expr = parseExpression();
             if (match("=")) {
-                Ast.Expression right = parseLogicalExpression();
+                Ast.Expression right = parseExpression();
                 if (match(";")) {
                     return new Ast.Statement.Assignment(expr, right);
+                } else {
+                    throw new ParseException("Missing semicolon", tokens.index);
                 }
+            }
+            if (peek(";")) {
+                match(";");
+            } else {
+                throw new ParseException("Missing semicolon", tokens.index);
             }
             return new Ast.Statement.Expression(expr);
         }
@@ -281,10 +288,14 @@ public final class Parser {
                     case 't':
                         ch = '\t';
                         break;
+                    case 'f':
+                        ch = '\f';
+                        break;
                     default:
                         break;
                 }
             }
+            // Vertical tab
 
             return new Ast.Expression.Literal(ch);
         }
@@ -296,6 +307,9 @@ public final class Parser {
             }
             // Check for escapes
             literal = replaceEscapes(literal);
+            // Weird characters
+            literal = literal.replace("\\u0000b", "\u0000b");
+            literal = literal.replace("\\f", "\f");
             return new Ast.Expression.Literal(literal);
         }
         // GROUP
@@ -315,6 +329,9 @@ public final class Parser {
             while (!match(")")) {
                 Ast.Expression expr = parseExpression();
                 args.add(expr);
+                if (peek(",", ")")) {
+                    throw new ParseException("Trailing comma", tokens.index);
+                }
                 match(",");
             }
             return new Ast.Expression.Function(literal, args);
@@ -330,8 +347,10 @@ public final class Parser {
             }
         }
 
-        match(Token.Type.IDENTIFIER);
-        return new Ast.Expression.Access(Optional.empty(), tokens.get(-1).getLiteral());
+        if (match(Token.Type.IDENTIFIER)) {
+            return new Ast.Expression.Access(Optional.empty(), tokens.get(-1).getLiteral());
+        }
+        throw new ParseException("Invalid expression", tokens.index);
     }
 
     private String replaceEscapes(String literal) {
