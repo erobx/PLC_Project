@@ -98,7 +98,14 @@ public final class Parser {
         } else if (peek("RETURN")) {
             return parseReturnStatement();
         } else {
-            return new Ast.Statement.Expression(parseExpression());
+            Ast.Expression expr = parseExpression();
+            if (match("=")) {
+                Ast.Expression right = parseLogicalExpression();
+                if (match(";")) {
+                    return new Ast.Statement.Assignment(expr, right);
+                }
+            }
+            return new Ast.Statement.Expression(expr);
         }
     }
 
@@ -169,9 +176,9 @@ public final class Parser {
     public Ast.Expression parseLogicalExpression() throws ParseException {
         Ast.Expression expr = parseComparisonExpression();
 
-        while (match("&&") || match("[||]")) {
+        while (match("&&") || match("||")) {
             // Binary takes type String as operator
-            String operator = "temp"; // TODO: change
+            String operator = tokens.get(-1).getLiteral();
             Ast.Expression right = parseComparisonExpression();
             expr = new Ast.Expression.Binary(operator, expr, right);
         }
@@ -187,7 +194,7 @@ public final class Parser {
 
         while (match("<") || match(">") || match("==") || match("!=")) {
             // Same as Logical and so forth
-            String operator = "temp";
+            String operator = tokens.get(-1).getLiteral();
             Ast.Expression right = parseAdditiveExpression();
             expr = new Ast.Expression.Binary(operator, expr, right);
         }
@@ -202,7 +209,7 @@ public final class Parser {
         Ast.Expression expr = parseMultiplicativeExpression();
 
         while (match("+") || match("-")) {
-            String operator = "temp";
+            String operator = tokens.get(-1).getLiteral();
             Ast.Expression right = parseMultiplicativeExpression();
             expr = new Ast.Expression.Binary(operator, expr, right);
         }
@@ -217,7 +224,7 @@ public final class Parser {
         Ast.Expression expr = parsePrimaryExpression();
 
         while (match("*") || match("/") || match("^")) {
-            String operator = "temp";
+            String operator = tokens.get(-1).getLiteral();
             Ast.Expression right = parsePrimaryExpression();
             expr = new Ast.Expression.Binary(operator, expr, right);
         }
