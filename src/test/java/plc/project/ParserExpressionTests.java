@@ -89,6 +89,10 @@ final class ParserExpressionTests {
                         Arrays.asList(new Token(Token.Type.CHARACTER, "'c'", 0)),
                         new Ast.Expression.Literal('c')
                 ),
+                Arguments.of("Character Escape",
+                        Arrays.asList(new Token(Token.Type.CHARACTER, "'\\n'", 0)),
+                        new Ast.Expression.Literal('\n')
+                ),
                 Arguments.of("String Literal",
                         Arrays.asList(new Token(Token.Type.STRING, "\"string\"", 0)),
                         new Ast.Expression.Literal("string")
@@ -96,6 +100,10 @@ final class ParserExpressionTests {
                 Arguments.of("Escape Character",
                         Arrays.asList(new Token(Token.Type.STRING, "\"Hello,\\nWorld!\"", 0)),
                         new Ast.Expression.Literal("Hello,\nWorld!")
+                ),
+                Arguments.of("Multiple Escapes",
+                        Arrays.asList(new Token(Token.Type.STRING, "\"Hel\\nWor\\rld\\'\"", 0)),
+                        new Ast.Expression.Literal("Hel\nWor\rld'")
                 )
         );
     }
