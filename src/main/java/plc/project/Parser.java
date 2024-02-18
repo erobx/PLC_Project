@@ -3,6 +3,7 @@ package plc.project;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Optional;
 
 /**
@@ -307,7 +308,17 @@ public final class Parser {
                 throw new ParseException("Invalid group", tokens.index);
             }
         }
-        // TODO: ID(), ID(expr), ID(expr, expr...)
+        // ID(), ID(expr), ID(expr, expr...)
+        if (match(Token.Type.IDENTIFIER, "(")) {
+            String literal = tokens.get(-2).getLiteral();
+            List<Ast.Expression> args = new ArrayList<>();
+            while (!match(")")) {
+                Ast.Expression expr = parseExpression();
+                args.add(expr);
+                match(",");
+            }
+            return new Ast.Expression.Function(literal, args);
+        }
 
         // Access with offset ID[expr]
         if (match(Token.Type.IDENTIFIER, "[")) {
