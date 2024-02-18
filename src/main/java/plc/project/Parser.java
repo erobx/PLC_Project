@@ -1,5 +1,7 @@
 package plc.project;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
 
@@ -185,7 +187,9 @@ public final class Parser {
 
         while (match("<") || match(">") || match("==") || match("!=")) {
             // Same as Logical and so forth
-            expr = new Ast.Expression.Binary();
+            String operator = "temp";
+            Ast.Expression right = parseAdditiveExpression();
+            expr = new Ast.Expression.Binary(operator, expr, right);
         }
 
         return expr;
@@ -198,8 +202,11 @@ public final class Parser {
         Ast.Expression expr = parseMultiplicativeExpression();
 
         while (match("+") || match("-")) {
-
+            String operator = "temp";
+            Ast.Expression right = parseMultiplicativeExpression();
+            expr = new Ast.Expression.Binary(operator, expr, right);
         }
+
         return expr;
     }
 
@@ -210,7 +217,9 @@ public final class Parser {
         Ast.Expression expr = parsePrimaryExpression();
 
         while (match("*") || match("/") || match("^")) {
-
+            String operator = "temp";
+            Ast.Expression right = parsePrimaryExpression();
+            expr = new Ast.Expression.Binary(operator, expr, right);
         }
 
         return expr;
@@ -224,8 +233,99 @@ public final class Parser {
      */
     public Ast.Expression parsePrimaryExpression() throws ParseException {
         // TODO: return right Expression based on grammar
+        // NIL, TRUE, FALSE, BigInteger, BigDecimal, Char, String,
+        // (expression), ID, ID(), ID(expression), ID(expression, expression...)
+        // ID[expression]
 
-        return new Ast.Expression.Access(Optional.empty(), "name");
+        // LITERALS
+        if (match("NIL")) return new Ast.Expression.Literal(null);
+        if (match("TRUE")) return new Ast.Expression.Literal(Boolean.TRUE);
+        if (match("FALSE")) return new Ast.Expression.Literal(Boolean.FALSE);
+        if (match(Token.Type.INTEGER)) {
+            BigInteger obj = new BigInteger(tokens.get(-1).getLiteral());
+            return new Ast.Expression.Literal(obj);
+        }
+        if (match(Token.Type.DECIMAL)) {
+            BigDecimal obj = new BigDecimal(tokens.get(-1).getLiteral());
+            return new Ast.Expression.Literal(obj);
+        }
+        // Chars
+        if (match(Token.Type.CHARACTER)) {
+            String literal = tokens.get(-1).getLiteral();
+            // Remove first and second '
+            for (int i = 0; i < 2; i++) {
+                literal = literal.replace("'", "");
+            }
+            // Check for escapes
+            char ch = literal.charAt(0);
+            if (ch == '\\') {
+                char nextChar = literal.charAt(1);
+                switch (nextChar) {
+                    case 'n':
+                        ch = '\n';
+                        break;
+                    case 'b':
+                        ch = '\b';
+                        break;
+                    case 'r':
+                        ch = '\r';
+                        break;
+                    case 't':
+                        ch = '\t';
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            return new Ast.Expression.Literal(ch);
+        }
+        // Strings
+        if (match(Token.Type.STRING)) {
+            String literal = tokens.get(-1).getLiteral();
+            for (int i = 0; i < 2; i++) {
+                literal = literal.replace("\"", "");
+            }
+            // Check for escapes
+            literal = replaceEscapes(literal);
+            return new Ast.Expression.Literal(literal);
+        }
+        // GROUP
+        if (match("(")) {
+            Ast.Expression expr = parseExpression();
+            if (peek(")")) {
+                match(")");
+                return new Ast.Expression.Group(expr);
+            } else {
+                throw new ParseException("Invalid group", tokens.index);
+            }
+        }
+        // TODO: ID(), ID(expr), ID(expr, expr...)
+
+        // Access with offset ID[expr]
+        if (match(Token.Type.IDENTIFIER, "[")) {
+            String literal = tokens.get(-2).getLiteral();
+            Ast.Expression expr = parseExpression();
+            if (peek("]")) {
+                match("]");
+                return new Ast.Expression.Access(Optional.of(expr), literal);
+            }
+        }
+
+        match(Token.Type.IDENTIFIER);
+        return new Ast.Expression.Access(Optional.empty(), tokens.get(-1).getLiteral());
+    }
+
+    private String replaceEscapes(String literal) {
+        // escape ::= '\' [bnrt'"\\]
+        literal = literal.replace("\\n", "\n");
+        literal = literal.replace("\\b", "\b");
+        literal = literal.replace("\\r", "\r");
+        literal = literal.replace("\\t", "\t");
+        literal = literal.replace("\\'", "'");
+        literal = literal.replace("\\\"", "\"");
+        literal = literal.replace("\\\\", "\\");
+        return literal;
     }
 
     /**
