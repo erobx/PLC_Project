@@ -121,6 +121,14 @@ final class ParserExpressionTests {
                 Arguments.of("Form feed",
                         Arrays.asList(new Token(Token.Type.STRING, "\"Hel\\fWor\"", 0)),
                         new Ast.Expression.Literal("Hel\fWor")
+                ),
+                Arguments.of("Empty String",
+                        Arrays.asList(new Token(Token.Type.STRING, "\"\"", 0)),
+                        new Ast.Expression.Literal("")
+                ),
+                Arguments.of("String Escape",
+                        Arrays.asList(new Token(Token.Type.STRING, "\"\\\"\"", 0)),
+                        new Ast.Expression.Literal("\"")
                 )
         );
     }
