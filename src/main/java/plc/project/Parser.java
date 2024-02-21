@@ -31,7 +31,20 @@ public final class Parser {
      * Parses the {@code source} rule.
      */
     public Ast.Source parseSource() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        List< Ast.Global> globals = new ArrayList<>();
+        List<Ast.Function> functions = new ArrayList<>();
+
+        while (tokens.has(1)) {
+            if (peek("LIST") || peek("VAR") || peek("VAL")) {
+                Ast.Global gl = parseGlobal();
+                globals.add(gl);
+            } else if (match("FUN")) {
+                Ast.Function fn = parseFunction();
+                functions.add(fn);
+            }
+        }
+
+        return new Ast.Source(globals, functions);
     }
 
     /**
@@ -39,7 +52,19 @@ public final class Parser {
      * next tokens start a global, aka {@code LIST|VAL|VAR}.
      */
     public Ast.Global parseGlobal() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Global gl;
+        if (match("LIST")) {
+            gl =  parseList();
+        } else if (match("VAR")) {
+            gl = parseMutable();
+        } else {
+            match("VAL");
+            gl = parseImmutable();
+        }
+        if (!match(";")) {
+            throw new ParseException("Missing semicolon", tokens.index); //TODO: fix index
+        }
+        return gl;
     }
 
     /**
@@ -47,7 +72,28 @@ public final class Parser {
      * next token declares a list, aka {@code LIST}.
      */
     public Ast.Global parseList() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        String name = getIdentifier();
+        checkNotEquals();
+        if (!match("[")) {
+            throw new ParseException("Missing [", tokens.index); //TODO: fix index
+        }
+
+        List<Ast.Expression> exprs = new ArrayList<>();
+        Ast.Expression expr = parseExpression();
+        exprs.add(expr);
+        while (!match("]")) {
+            expr = parseExpression();
+            exprs.add(expr);
+            if (peek(",", "]")) {
+                Token lastExp = tokens.get(0);
+                int errIndex = lastExp.getIndex()+1;
+                throw new ParseException("Trailing comma", errIndex);
+            }
+            match(",");
+        }
+
+        Ast.Expression.PlcList list = new Ast.Expression.PlcList(exprs);
+        return new Ast.Global(name, true, Optional.of(list));
     }
 
     /**
@@ -55,7 +101,12 @@ public final class Parser {
      * next token declares a mutable global variable, aka {@code VAR}.
      */
     public Ast.Global parseMutable() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        String name = getIdentifier();
+        if (match("=")) {
+            return new Ast.Global(name, true, Optional.of(parseExpression()));
+        }
+
+        return new Ast.Global(name, true, Optional.empty());
     }
 
     /**
@@ -63,7 +114,10 @@ public final class Parser {
      * next token declares an immutable global variable, aka {@code VAL}.
      */
     public Ast.Global parseImmutable() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        String name = getIdentifier();
+        checkNotEquals();
+
+        return new Ast.Global(name, false, Optional.of(parseExpression()));
     }
 
     /**
@@ -71,7 +125,33 @@ public final class Parser {
      * next tokens start a method, aka {@code FUN}.
      */
     public Ast.Function parseFunction() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        String name = getIdentifier();
+        if (!match("(")) {
+            throw new ParseException("Missing left paren", tokens.index); //TODO: fix index
+        }
+        List<String> params = new ArrayList<>();
+        List<Ast.Statement> statements = new ArrayList<>();
+
+        while (!match(")")) {
+            if (!match(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Invalid argument", tokens.index); //TODO: fix index
+            }
+            String arg = tokens.get(-1).getLiteral();
+            params.add(arg);
+            if (peek(",", ")")) {
+                Token lastExp = tokens.get(0);
+                int errIndex = lastExp.getIndex()+1;
+                throw new ParseException("Trailing comma", errIndex);
+            }
+            match(",");
+        }
+
+        if (!match("DO")) {
+            throw new ParseException("Missing DO", tokens.index); //TODO: fix index
+        }
+        statements = parseBlock();
+
+        return new Ast.Function(name, params, statements);
     }
 
     /**
@@ -79,7 +159,24 @@ public final class Parser {
      * preceding token indicates the opening a block of statements.
      */
     public List<Ast.Statement> parseBlock() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        List<Ast.Statement> stmts = new ArrayList<>();
+        while (!match("END")) {
+            stmts.add(parseStatement());
+        }
+        return stmts;
+    }
+
+    private void checkNotEquals() throws ParseException {
+        if (!match("=")) {
+            throw new ParseException("Missing =", tokens.index); //TODO: fix index
+        }
+    }
+
+    private String getIdentifier() throws ParseException {
+        if (!match(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Invalid identifier", tokens.index); //TODO: fix index
+        }
+        return tokens.get(-1).getLiteral();
     }
 
     /**

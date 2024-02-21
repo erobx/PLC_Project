@@ -47,6 +47,32 @@ final class ParserTests {
                                 Arrays.asList()
                         )
                 ),
+                Arguments.of("Global - Mutable No Assignment",
+                        Arrays.asList(
+                                //VAR name;
+                                new Token(Token.Type.IDENTIFIER, "VAR", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, ";", 8)
+                        ),
+                        new Ast.Source(
+                                Arrays.asList(new Ast.Global("name", true, Optional.empty())),
+                                Arrays.asList()
+                        )
+                ),
+                Arguments.of("Global - Mutable",
+                        Arrays.asList(
+                                //VAR name = expr;
+                                new Token(Token.Type.IDENTIFIER, "VAR", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "=", 9),
+                                new Token(Token.Type.IDENTIFIER, "expr", 11),
+                                new Token(Token.Type.OPERATOR, ";", 15)
+                        ),
+                        new Ast.Source(
+                                Arrays.asList(new Ast.Global("name", true, Optional.of(new Ast.Expression.Access(Optional.empty(), "expr")))),
+                                Arrays.asList()
+                        )
+                ),
                 Arguments.of("Function",
                         Arrays.asList(
                                 //FUN name() DO stmt; END
