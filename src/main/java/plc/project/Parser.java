@@ -92,11 +92,11 @@ public final class Parser {
             return parseDeclarationStatement();
         } else if (match("SWITCH")) {
             return parseSwitchStatement();
-        } else if (peek("IF")) {
+        } else if (match("IF")) {
             return parseIfStatement();
         } else if (peek("WHILE")) {
             return parseWhileStatement();
-        } else if (peek("RETURN")) {
+        } else if (match("RETURN")) {
             return parseReturnStatement();
         } else {
             Ast.Expression expr = parseExpression();
@@ -148,7 +148,28 @@ public final class Parser {
      * {@code IF}.
      */
     public Ast.Statement.If parseIfStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression expr = parseExpression();
+        List<Ast.Statement> thenStatements = new ArrayList<>();
+        List<Ast.Statement> elseStatements = new ArrayList<>();
+
+        if (!match("DO")) {
+            throw new ParseException("Missing DO", tokens.index); //TODO: fix index
+        } else {
+            // Parse statements
+            while (!peek("ELSE") && !match("END")) {
+                Ast.Statement stmt = parseStatement();
+                thenStatements.add(stmt);
+            }
+        }
+
+        if (match("ELSE")) {
+            while (!match("END")) {
+                Ast.Statement stmt = parseStatement();
+                elseStatements.add(stmt);
+            }
+        }
+
+        return new Ast.Statement.If(expr, thenStatements, elseStatements);
     }
 
     /**
@@ -223,7 +244,11 @@ public final class Parser {
      * {@code RETURN}.
      */
     public Ast.Statement.Return parseReturnStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression expr = parseExpression();
+        if (!match(";")) {
+            throw new ParseException("Missing semicolon", tokens.index); //TODO: fix index
+        }
+        return new Ast.Statement.Return(expr);
     }
 
     /**

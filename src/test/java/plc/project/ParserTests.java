@@ -337,6 +337,21 @@ final class ParserTests {
                                 Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt1"))),
                                 Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt2")))
                         )
+                ),
+                Arguments.of("Empty Blocks",
+                        Arrays.asList(
+                                //IF expr DO ELSE END
+                                new Token(Token.Type.IDENTIFIER, "IF", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 3),
+                                new Token(Token.Type.IDENTIFIER, "DO", 8),
+                                new Token(Token.Type.IDENTIFIER, "ELSE", 11),
+                                new Token(Token.Type.IDENTIFIER, "END", 16)
+                        ),
+                        new Ast.Statement.If(
+                                new Ast.Expression.Access(Optional.empty(), "expr"),
+                                Arrays.asList(),
+                                Arrays.asList()
+                        )
                 )
         );
     }
