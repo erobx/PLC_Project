@@ -126,7 +126,15 @@ public final class Parser {
      * statement, aka {@code LET}.
      */
     public Ast.Statement.Declaration parseDeclarationStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match("LET");
+        Ast.Statement.Declaration dec;
+        if (!match(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Missing identifier", tokens.index); //TODO: fix index
+        }
+        if (match("=")) {
+            return null;
+        }
+        return new Ast.Statement.Declaration("bitch", Optional.empty());
     }
 
     /**
@@ -324,11 +332,17 @@ public final class Parser {
         // Strings
         if (match(Token.Type.STRING)) {
             String literal = tokens.get(-1).getLiteral();
-            for (int i = 0; i < 2; i++) {
-                literal = literal.replace("\"", "");
-            }
             // Check for escapes
             literal = replaceEscapes(literal);
+            if (literal.contains("\\\"")) {
+                literal = literal.replace("\\\"", "\"");
+                for (int i = 0; i < 2; i++) {
+                    literal = literal.replaceFirst("\"", "");
+                }
+            } else {
+                literal = literal.replace("\"", "");
+            }
+
             // Weird characters
             literal = literal.replace("\\u0000b", "\u0000b");
             literal = literal.replace("\\f", "\f");
@@ -385,7 +399,6 @@ public final class Parser {
         literal = literal.replace("\\r", "\r");
         literal = literal.replace("\\t", "\t");
         literal = literal.replace("\\'", "'");
-        literal = literal.replace("\\\"", "\"");
         literal = literal.replace("\\\\", "\\");
         return literal;
     }
