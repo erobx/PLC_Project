@@ -169,17 +169,7 @@ public final class Parser {
     private List<Ast.Statement.Case> caseLoop() throws ParseException {
         List<Ast.Statement.Case> cases = new ArrayList<>();
         while (match("CASE")) {
-            Ast.Expression expr = parseExpression();
-            if (!match(":")) {
-                throw new ParseException("Missing colon", tokens.index); //TODO: fix index
-            }
-            // Parse statements
-            List<Ast.Statement> statements = new ArrayList<>();
-            while (!peek("DEFAULT") && !peek("CASE")) {
-                Ast.Statement stmt = parseStatement();
-                statements.add(stmt);
-            }
-            cases.add(new Ast.Statement.Case(Optional.of(expr), statements));
+            cases.add(parseCaseStatement());
         }
         cases.add(parseDefault());
         return cases;
@@ -205,7 +195,17 @@ public final class Parser {
      * default block of a switch statement, aka {@code CASE} or {@code DEFAULT}.
      */
     public Ast.Statement.Case parseCaseStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression expr = parseExpression();
+        if (!match(":")) {
+            throw new ParseException("Missing colon", tokens.index); //TODO: fix index
+        }
+        // Parse statements
+        List<Ast.Statement> statements = new ArrayList<>();
+        while (!peek("DEFAULT") && !peek("CASE")) {
+            Ast.Statement stmt = parseStatement();
+            statements.add(stmt);
+        }
+        return new Ast.Statement.Case(Optional.of(expr), statements);
     }
 
     /**
