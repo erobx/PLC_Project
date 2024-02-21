@@ -94,7 +94,7 @@ public final class Parser {
             return parseSwitchStatement();
         } else if (match("IF")) {
             return parseIfStatement();
-        } else if (peek("WHILE")) {
+        } else if (match("WHILE")) {
             return parseWhileStatement();
         } else if (match("RETURN")) {
             return parseReturnStatement();
@@ -235,7 +235,17 @@ public final class Parser {
      * {@code WHILE}.
      */
     public Ast.Statement.While parseWhileStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression condition = parseExpression();
+        if (!match("DO")) {
+            throw new ParseException("Missing DO", tokens.index); //TODO: fix index
+        }
+        List<Ast.Statement> statements = new ArrayList<>();
+        while (!match("END")) {
+            Ast.Statement stmt = parseStatement();
+            statements.add(stmt);
+        }
+
+        return new Ast.Statement.While(condition, statements);
     }
 
     /**
