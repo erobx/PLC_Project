@@ -88,9 +88,9 @@ public final class Parser {
      * statement, then it is an expression/assignment statement.
      */
     public Ast.Statement parseStatement() throws ParseException {
-        if (peek("LET")) {
+        if (match("LET")) {
             return parseDeclarationStatement();
-        } else if (peek("SWITCH")) {
+        } else if (match("SWITCH")) {
             return parseSwitchStatement();
         } else if (peek("IF")) {
             return parseIfStatement();
@@ -126,15 +126,20 @@ public final class Parser {
      * statement, aka {@code LET}.
      */
     public Ast.Statement.Declaration parseDeclarationStatement() throws ParseException {
-        match("LET");
-        Ast.Statement.Declaration dec;
         if (!match(Token.Type.IDENTIFIER)) {
             throw new ParseException("Missing identifier", tokens.index); //TODO: fix index
         }
+        String name = tokens.get(-1).getLiteral();
+        Ast.Statement.Declaration dec = new Ast.Statement.Declaration(name, Optional.empty());
         if (match("=")) {
-            return null;
+            Ast.Expression right = parseExpression();
+            dec =  new Ast.Statement.Declaration(name, Optional.of(right));
         }
-        return new Ast.Statement.Declaration("bitch", Optional.empty());
+        // Matched ID and not = check for ;
+        if (!match(";")) {
+            throw new ParseException("Missing semicolon", tokens.index); // TODO: fix index
+        }
+        return dec;
     }
 
     /**
@@ -152,7 +157,46 @@ public final class Parser {
      * {@code SWITCH}.
      */
     public Ast.Statement.Switch parseSwitchStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression condition = parseExpression();
+        // Enter CASE and DEFAULT loop
+        List<Ast.Statement.Case> cases = caseLoop();
+        return new Ast.Statement.Switch(condition, cases);
+    }
+
+    // ('CASE' expression ':' block)*
+    // new Ast.Statement.Case(Expressions, List<Statement>)
+    // SWITCH expr CASE expr : LET name; LET x = 0; CASE exp2 : LET v; DEFAULT LET v; END
+    private List<Ast.Statement.Case> caseLoop() throws ParseException {
+        List<Ast.Statement.Case> cases = new ArrayList<>();
+        while (match("CASE")) {
+            Ast.Expression expr = parseExpression();
+            if (!match(":")) {
+                throw new ParseException("Missing colon", tokens.index); //TODO: fix index
+            }
+            // Parse statements
+            List<Ast.Statement> statements = new ArrayList<>();
+            while (!peek("DEFAULT") && !peek("CASE")) {
+                Ast.Statement stmt = parseStatement();
+                statements.add(stmt);
+            }
+            cases.add(new Ast.Statement.Case(Optional.of(expr), statements));
+        }
+        cases.add(parseDefault());
+        return cases;
+    }
+
+    // DEFAULT found
+    private Ast.Statement.Case parseDefault() throws ParseException {
+        List<Ast.Statement> statements = new ArrayList<>();
+        if (!match("DEFAULT")) {
+            throw new ParseException("Missing Default Case", tokens.index); //TODO: fix index
+        }
+        while (!match("END")) {
+            Ast.Statement stmt = parseStatement();
+            statements.add(stmt);
+        }
+
+        return new Ast.Statement.Case(Optional.empty(), statements);
     }
 
     /**
