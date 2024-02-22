@@ -34,13 +34,21 @@ public final class Parser {
         List< Ast.Global> globals = new ArrayList<>();
         List<Ast.Function> functions = new ArrayList<>();
 
+        // Have to parse all globals first before functions
+        boolean flag = false;
         while (tokens.has(1)) {
             if (peek("LIST") || peek("VAR") || peek("VAL")) {
-                Ast.Global gl = parseGlobal();
-                globals.add(gl);
-            } else if (match("FUN")) {
+                if (!flag) {
+                    Ast.Global gl = parseGlobal();
+                    globals.add(gl);
+                } else {
+                    throw new ParseException("Function Before Global", getErrIndex());
+                }
+            }
+            if (match("FUN")) {
                 Ast.Function fn = parseFunction();
                 functions.add(fn);
+                flag = true;
             }
         }
 
@@ -62,7 +70,7 @@ public final class Parser {
             gl = parseImmutable();
         }
         if (!match(";")) {
-            throw new ParseException("Missing semicolon", tokens.index); //TODO: fix index
+            throw new ParseException("Missing semicolon", getErrIndex());
         }
         return gl;
     }
@@ -75,7 +83,7 @@ public final class Parser {
         String name = getIdentifier();
         checkNotEquals();
         if (!match("[")) {
-            throw new ParseException("Missing [", tokens.index); //TODO: fix index
+            throw new ParseException("Missing [", getErrIndex());
         }
 
         List<Ast.Expression> exprs = new ArrayList<>();
@@ -127,14 +135,14 @@ public final class Parser {
     public Ast.Function parseFunction() throws ParseException {
         String name = getIdentifier();
         if (!match("(")) {
-            throw new ParseException("Missing left paren", tokens.index); //TODO: fix index
+            throw new ParseException("Missing left paren", getErrIndex());
         }
         List<String> params = new ArrayList<>();
         List<Ast.Statement> statements = new ArrayList<>();
 
         while (!match(")")) {
             if (!match(Token.Type.IDENTIFIER)) {
-                throw new ParseException("Invalid argument", tokens.index); //TODO: fix index
+                throw new ParseException("Invalid argument", getErrIndex());
             }
             String arg = tokens.get(-1).getLiteral();
             params.add(arg);
@@ -147,7 +155,7 @@ public final class Parser {
         }
 
         if (!match("DO")) {
-            throw new ParseException("Missing DO", tokens.index); //TODO: fix index
+            throw new ParseException("Missing DO", getErrIndex());
         }
         statements = parseBlock();
 
@@ -168,13 +176,13 @@ public final class Parser {
 
     private void checkNotEquals() throws ParseException {
         if (!match("=")) {
-            throw new ParseException("Missing =", tokens.index); //TODO: fix index
+            throw new ParseException("Missing =", getErrIndex());
         }
     }
 
     private String getIdentifier() throws ParseException {
         if (!match(Token.Type.IDENTIFIER)) {
-            throw new ParseException("Invalid identifier", tokens.index); //TODO: fix index
+            throw new ParseException("Invalid identifier", getErrIndex());
         }
         return tokens.get(-1).getLiteral();
     }
