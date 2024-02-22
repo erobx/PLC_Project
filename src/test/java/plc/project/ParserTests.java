@@ -691,14 +691,31 @@ final class ParserTests {
 
     private static Stream<Arguments> testScenarioParseException() {
         return Stream.of(
-                Arguments.of("Missing IF DO",
+                Arguments.of("Missing DO",
+                        Arrays.asList(
+                                //IF expr
+                                new Token(Token.Type.IDENTIFIER, "IF", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 3)
+                        ),
+                        new ParseException("Missing DO", 7)
+                ),
+                Arguments.of("Invalid DO",
                         Arrays.asList(
                                 //IF expr THEN
                                 new Token(Token.Type.IDENTIFIER, "IF", 0),
                                 new Token(Token.Type.IDENTIFIER, "expr", 3),
                                 new Token(Token.Type.IDENTIFIER, "THEN", 8)
                         ),
-                        new ParseException("Missing DO", 7)
+                        new ParseException("Invalid DO", 8)
+                ),
+                Arguments.of("Invalid DO 2",
+                        Arrays.asList(
+                                //IF expr 23
+                                new Token(Token.Type.IDENTIFIER, "IF", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 3),
+                                new Token(Token.Type.INTEGER, "23", 8)
+                        ),
+                        new ParseException("Invalid DO", 8)
                 ),
                 Arguments.of("Missing Switch DEFAULT",
                         Arrays.asList(

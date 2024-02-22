@@ -257,6 +257,9 @@ public final class Parser {
         List<Ast.Statement> elseStatements = new ArrayList<>();
 
         if (!match("DO")) {
+            if (tokens.has(0)) {
+                throw new ParseException("Invalid DO", getErrIndex()+1);
+            }
             throw new ParseException("Missing DO", getErrIndex());
         } else {
             // Parse statements
