@@ -91,6 +91,54 @@ final class ParserTests {
                                         new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt"))
                                 )))
                         )
+                ),
+                Arguments.of("Global Function",
+                        Arrays.asList(
+                                //VAL name = expr;\nFUN name() DO stmt; END
+                                new Token(Token.Type.IDENTIFIER, "VAL", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "=", 9),
+                                new Token(Token.Type.IDENTIFIER, "expr", 11),
+                                new Token(Token.Type.OPERATOR, ";", 15),
+                                new Token(Token.Type.IDENTIFIER, "FUN", 17),
+                                new Token(Token.Type.IDENTIFIER, "name", 20),
+                                new Token(Token.Type.OPERATOR, "(", 24),
+                                new Token(Token.Type.OPERATOR, ")", 25),
+                                new Token(Token.Type.IDENTIFIER, "DO", 27),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 30),
+                                new Token(Token.Type.OPERATOR, ";", 34),
+                                new Token(Token.Type.IDENTIFIER, "END", 36)
+                        ),
+                        new Ast.Source(
+                                Arrays.asList(new Ast.Global("name", false, Optional.of(new Ast.Expression.Access(Optional.empty(), "expr")))),
+                                Arrays.asList(new Ast.Function("name", Arrays.asList(), Arrays.asList(
+                                        new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt"))
+                                )))
+                        )
+                ),
+                Arguments.of("Function Global",
+                        Arrays.asList(
+                                //FUN name() DO stmt; END\nVAR name = expr;
+                                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "(", 8),
+                                new Token(Token.Type.OPERATOR, ")", 9),
+                                new Token(Token.Type.IDENTIFIER, "DO", 11),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 14),
+                                new Token(Token.Type.OPERATOR, ";", 18),
+                                new Token(Token.Type.IDENTIFIER, "END", 20),
+                                new Token(Token.Type.IDENTIFIER, "VAR", 24),
+                                new Token(Token.Type.IDENTIFIER, "name", 28),
+                                new Token(Token.Type.OPERATOR, "=", 33),
+                                new Token(Token.Type.IDENTIFIER, "expr", 35),
+                                new Token(Token.Type.OPERATOR, ";", 39)
+                        ),
+                        new Ast.Source(
+                                Arrays.asList(new Ast.Global("name", true, Optional.of(new Ast.Expression.Access(Optional.empty(), "expr")))),
+                                Arrays.asList(new Ast.Function("name", Arrays.asList(), Arrays.asList(
+                                        new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt"))
+                                )))
+                        )
                 )
         );
     }
@@ -166,6 +214,23 @@ final class ParserTests {
                         new Ast.Statement.Assignment(
                                 new Ast.Expression.Access(Optional.empty(), "name"),
                                 new Ast.Expression.Access(Optional.empty(), "value")
+                        )
+                ),
+                Arguments.of("List",
+                        Arrays.asList(
+                                //list[offset] = expr;
+                                new Token(Token.Type.IDENTIFIER, "list", 0),
+                                new Token(Token.Type.OPERATOR, "[", 4),
+                                new Token(Token.Type.IDENTIFIER, "offset", 5),
+                                new Token(Token.Type.OPERATOR, "]", 11),
+                                new Token(Token.Type.OPERATOR, "=", 13),
+                                new Token(Token.Type.IDENTIFIER, "expr", 15),
+                                new Token(Token.Type.OPERATOR, ";", 19)
+                        ),
+                        new Ast.Statement.Assignment(
+                                new Ast.Expression.Access(
+                                        Optional.of(new Ast.Expression.Access(Optional.empty(), "offset")), "list"),
+                               new Ast.Expression.Access(Optional.empty(), "expr")
                         )
                 )
         );
@@ -404,6 +469,29 @@ final class ParserTests {
                                 new Ast.Expression.Access(Optional.empty(), "expr"),
                                 Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt")))
                         )
+                ),
+                Arguments.of("Multi Statements",
+                        Arrays.asList(
+                                //WHILE expr DO stmt1; stmt2; stmt3; END
+                                new Token(Token.Type.IDENTIFIER, "WHILE", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 6),
+                                new Token(Token.Type.IDENTIFIER, "DO", 11),
+                                new Token(Token.Type.IDENTIFIER, "stmt1", 14),
+                                new Token(Token.Type.OPERATOR, ";", 19),
+                                new Token(Token.Type.IDENTIFIER, "stmt2", 21),
+                                new Token(Token.Type.OPERATOR, ";", 22),
+                                new Token(Token.Type.IDENTIFIER, "stmt3", 24),
+                                new Token(Token.Type.OPERATOR, ";", 29),
+                                new Token(Token.Type.IDENTIFIER, "END", 31)
+                        ),
+                        new Ast.Statement.While(
+                                new Ast.Expression.Access(Optional.empty(), "expr"),
+                                Arrays.asList(
+                                        new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt1")),
+                                        new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt2")),
+                                        new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt3"))
+                                )
+                        )
                 )
         );
     }
@@ -617,6 +705,111 @@ final class ParserTests {
                         ))
                 )
         );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void testScenarioParseException(String test, List<Token> tokens, ParseException expected) {
+        testParseException(tokens, expected, Parser::parseStatement);
+    }
+
+    private static Stream<Arguments> testScenarioParseException() {
+        return Stream.of(
+                Arguments.of("Missing IF DO",
+                        Arrays.asList(
+                                //IF expr THEN
+                                new Token(Token.Type.IDENTIFIER, "IF", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 3),
+                                new Token(Token.Type.IDENTIFIER, "THEN", 8)
+                        ),
+                        new ParseException("Missing DO", 7)
+                ),
+                Arguments.of("Missing Switch DEFAULT",
+                        Arrays.asList(
+                                //SWITCH expr CASE expr1 : stmt; END
+                                new Token(Token.Type.IDENTIFIER, "SWITCH", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 7),
+                                new Token(Token.Type.IDENTIFIER, "CASE", 12),
+                                new Token(Token.Type.IDENTIFIER, "expr1", 17),
+                                new Token(Token.Type.OPERATOR, ":", 23),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 25),
+                                new Token(Token.Type.OPERATOR, ";", 29),
+                                new Token(Token.Type.IDENTIFIER, "END", 31)
+                        ),
+                        new ParseException("Missing Default Case", 30)
+                ),
+                Arguments.of("Missing Switch END",
+                        Arrays.asList(
+                                //SWITCH expr DEFAULT stmt; G;
+                                new Token(Token.Type.IDENTIFIER, "SWITCH", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 7),
+                                new Token(Token.Type.IDENTIFIER, "DEFAULT", 12),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 20),
+                                new Token(Token.Type.OPERATOR, ";", 25),
+                                new Token(Token.Type.IDENTIFIER, "G", 27),
+                                new Token(Token.Type.OPERATOR, ";", 28)
+                        ),
+                        new ParseException("Missing END", 29)
+                ),
+                Arguments.of("Missing While END",
+                        Arrays.asList(
+                                //WHILE expr DO stmt;
+                                new Token(Token.Type.IDENTIFIER, "WHILE", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 6),
+                                new Token(Token.Type.IDENTIFIER, "DO", 11),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 14),
+                                new Token(Token.Type.OPERATOR, ";", 18)
+                        ),
+                        new ParseException("Missing END", 19)
+                ),
+                Arguments.of("Missing While DO",
+                        Arrays.asList(
+                                //WHILE expr stmt; END
+                                new Token(Token.Type.IDENTIFIER, "WHILE", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 6),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 11),
+                                new Token(Token.Type.OPERATOR, ";", 15),
+                                new Token(Token.Type.IDENTIFIER, "END", 17)
+                        ),
+                        new ParseException("Missing DO", 10)
+                ),
+                Arguments.of("Missing RETURN Value",
+                        Arrays.asList(
+                                //RETURN;
+                                new Token(Token.Type.IDENTIFIER, "RETURN", 0),
+                                new Token(Token.Type.OPERATOR, ";", 6)
+                        ),
+                        new ParseException("Missing Value", 6)
+                ),
+                Arguments.of("Missing Assign Value",
+                        Arrays.asList(
+                                //name = ;
+                                new Token(Token.Type.IDENTIFIER, "name", 0),
+                                new Token(Token.Type.OPERATOR, "=", 5),
+                                new Token(Token.Type.OPERATOR, ";", 7)
+                        ),
+                        new ParseException("Missing Assign Value", 6)
+                ),
+                Arguments.of("Type Annotation",
+                        Arrays.asList(
+                                //LET name: Type = expr;
+                                new Token(Token.Type.IDENTIFIER, "LET", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, ":", 8),
+                                new Token(Token.Type.IDENTIFIER, "Type", 10),
+                                new Token(Token.Type.OPERATOR, "=", 15),
+                                new Token(Token.Type.IDENTIFIER, "expr", 17),
+                                new Token(Token.Type.OPERATOR, ";", 21)
+                        ),
+                        new ParseException("Missing semicolon", 8)
+                )
+        );
+    }
+
+    private static <T extends Ast> void testParseException(List<Token> tokens, Exception exception, Function<Parser, T> function) {
+        Parser parser = new Parser(tokens);
+        ParseException pe = Assertions.assertThrows(ParseException.class, () -> function.apply(parser));
+        Assertions.assertEquals(exception, pe);
     }
 
     @Test

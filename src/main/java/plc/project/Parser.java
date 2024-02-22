@@ -204,14 +204,13 @@ public final class Parser {
                         return new Ast.Statement.Assignment(expr, right);
                     }
                 } catch (ParseException ex) {
-                    int errIndex = tokens.get(-1).getIndex() + 2;
-                    throw new ParseException("Missing value", errIndex);
+                    throw new ParseException("Missing Assign Value", getErrIndex());
                 }
             }
             if (peek(";")) {
                 match(";");
             } else {
-                throw new ParseException("Missing semicolon", tokens.get(-1).getIndex());
+                throw new ParseException("Missing semicolon", getErrIndex());
             }
             return new Ast.Statement.Expression(expr);
         }
@@ -224,7 +223,7 @@ public final class Parser {
      */
     public Ast.Statement.Declaration parseDeclarationStatement() throws ParseException {
         if (!match(Token.Type.IDENTIFIER)) {
-            throw new ParseException("Missing identifier", tokens.index); //TODO: fix index
+            throw new ParseException("Missing identifier", getErrIndex());
         }
         String name = tokens.get(-1).getLiteral();
         Ast.Statement.Declaration dec = new Ast.Statement.Declaration(name, Optional.empty());
@@ -234,7 +233,7 @@ public final class Parser {
         }
         // Matched ID and not = check for ;
         if (!match(";")) {
-            throw new ParseException("Missing semicolon", tokens.index); // TODO: fix index
+            throw new ParseException("Missing semicolon", getErrIndex());
         }
         return dec;
     }
@@ -250,7 +249,7 @@ public final class Parser {
         List<Ast.Statement> elseStatements = new ArrayList<>();
 
         if (!match("DO")) {
-            throw new ParseException("Missing DO", tokens.index); //TODO: fix index
+            throw new ParseException("Missing DO", getErrIndex());
         } else {
             // Parse statements
             while (!peek("ELSE") && !match("END")) {
@@ -297,11 +296,16 @@ public final class Parser {
     private Ast.Statement.Case parseDefault() throws ParseException {
         List<Ast.Statement> statements = new ArrayList<>();
         if (!match("DEFAULT")) {
-            throw new ParseException("Missing Default Case", tokens.index); //TODO: fix index
+            throw new ParseException("Missing Default Case", getErrIndex());
         }
         while (!match("END")) {
-            Ast.Statement stmt = parseStatement();
-            statements.add(stmt);
+            try {
+                Ast.Statement stmt = parseStatement();
+                statements.add(stmt);
+            } catch (ParseException ex) {
+                throw new ParseException("Missing END", getErrIndex());
+            }
+
         }
 
         return new Ast.Statement.Case(Optional.empty(), statements);
@@ -315,11 +319,11 @@ public final class Parser {
     public Ast.Statement.Case parseCaseStatement() throws ParseException {
         Ast.Expression expr = parseExpression();
         if (!match(":")) {
-            throw new ParseException("Missing colon", tokens.index); //TODO: fix index
+            throw new ParseException("Missing colon", getErrIndex());
         }
         // Parse statements
         List<Ast.Statement> statements = new ArrayList<>();
-        while (!peek("DEFAULT") && !peek("CASE")) {
+        while (!peek("DEFAULT") && !peek("CASE") && !peek("END")) {
             Ast.Statement stmt = parseStatement();
             statements.add(stmt);
         }
@@ -334,12 +338,16 @@ public final class Parser {
     public Ast.Statement.While parseWhileStatement() throws ParseException {
         Ast.Expression condition = parseExpression();
         if (!match("DO")) {
-            throw new ParseException("Missing DO", tokens.index); //TODO: fix index
+            throw new ParseException("Missing DO", getErrIndex());
         }
         List<Ast.Statement> statements = new ArrayList<>();
         while (!match("END")) {
-            Ast.Statement stmt = parseStatement();
-            statements.add(stmt);
+            try {
+                Ast.Statement stmt = parseStatement();
+                statements.add(stmt);
+            } catch (ParseException ex) {
+                throw new ParseException("Missing END", getErrIndex());
+            }
         }
 
         return new Ast.Statement.While(condition, statements);
@@ -351,9 +359,14 @@ public final class Parser {
      * {@code RETURN}.
      */
     public Ast.Statement.Return parseReturnStatement() throws ParseException {
-        Ast.Expression expr = parseExpression();
-        if (!match(";")) {
-            throw new ParseException("Missing semicolon", tokens.index); //TODO: fix index
+        Ast.Expression expr = null;
+        try {
+            expr = parseExpression();
+            if (!match(";")) {
+                throw new ParseException("Missing semicolon", getErrIndex());
+            }
+        } catch (ParseException ex) {
+            throw new ParseException("Missing Value", getErrIndex());
         }
         return new Ast.Statement.Return(expr);
     }
@@ -566,6 +579,10 @@ public final class Parser {
             return new Ast.Expression.Access(Optional.empty(), tokens.get(-1).getLiteral());
         }
         throw new ParseException("Invalid expression", tokens.index);
+    }
+
+    private int getErrIndex() {
+        return tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length();
     }
 
     private String replaceEscapes(String literal) {
