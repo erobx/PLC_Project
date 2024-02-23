@@ -121,6 +121,14 @@ final class ParserExpressionTests {
                 Arguments.of("Form feed",
                         Arrays.asList(new Token(Token.Type.STRING, "\"Hel\\fWor\"", 0)),
                         new Ast.Expression.Literal("Hel\fWor")
+                ),
+                Arguments.of("Empty String",
+                        Arrays.asList(new Token(Token.Type.STRING, "\"\"", 0)),
+                        new Ast.Expression.Literal("")
+                ),
+                Arguments.of("String Escape",
+                        Arrays.asList(new Token(Token.Type.STRING, "\"\\\"\"", 0)),
+                        new Ast.Expression.Literal("\"")
                 )
         );
     }
@@ -391,7 +399,7 @@ final class ParserExpressionTests {
                                 //f
                                 new Token(Token.Type.IDENTIFIER, "f", 0)
                         ),
-                        new ParseException("Missing semicolon", 0)
+                        new ParseException("Missing semicolon", 1)
                 ),
                 Arguments.of("Missing Value",
                         Arrays.asList(
@@ -400,7 +408,7 @@ final class ParserExpressionTests {
                                 new Token(Token.Type.OPERATOR, "=", 5),
                                 new Token(Token.Type.OPERATOR, ";", 7)
                         ),
-                        new ParseException("Missing value", 7)
+                        new ParseException("Missing Assign Value", 6)
                 )
         );
     }
