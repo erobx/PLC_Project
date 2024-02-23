@@ -795,6 +795,13 @@ final class ParserTests {
                                 new Token(Token.Type.OPERATOR, ";", 21)
                         ),
                         new ParseException("Missing semicolon", 8)
+                ),
+                Arguments.of("Missing Semicolon",
+                        Arrays.asList(
+                                //x
+                                new Token(Token.Type.IDENTIFIER, "x", 0)
+                        ),
+                        new ParseException("Missing semicolon", 1)
                 )
         );
     }
