@@ -115,6 +115,32 @@ final class ParserTests {
                                         new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt"))
                                 )))
                         )
+                ),
+                Arguments.of("Global List",
+                        Arrays.asList(
+                                //LIST list = [1, 5, 10];
+                                new Token(Token.Type.IDENTIFIER, "LIST", 0),
+                                new Token(Token.Type.IDENTIFIER, "list", 5),
+                                new Token(Token.Type.OPERATOR, "=", 10),
+                                new Token(Token.Type.OPERATOR, "[", 12),
+                                new Token(Token.Type.INTEGER, "1", 13),
+                                new Token(Token.Type.OPERATOR, ",", 14),
+                                new Token(Token.Type.INTEGER, "5", 16),
+                                new Token(Token.Type.OPERATOR, ",", 17),
+                                new Token(Token.Type.INTEGER, "10", 19),
+                                new Token(Token.Type.OPERATOR, "]", 20),
+                                new Token(Token.Type.OPERATOR, ";", 21)
+                        ),
+                        new Ast.Source(
+                                Arrays.asList(new Ast.Global("list", true, Optional.of(new Ast.Expression.PlcList(
+                                        Arrays.asList(
+                                            new Ast.Expression.Literal(BigInteger.ONE),
+                                            new Ast.Expression.Literal(BigInteger.valueOf(5)),
+                                            new Ast.Expression.Literal(BigInteger.TEN))
+                                        )))
+                                ),
+                                Arrays.asList()
+                        )
                 )
         );
     }
@@ -560,7 +586,7 @@ final class ParserTests {
                 )
         );
     }
-
+//
     @ParameterizedTest
     @MethodSource
     void testBinaryExpression(String test, List<Token> tokens, Ast.Expression.Binary expected) {
@@ -832,6 +858,88 @@ final class ParserTests {
                                 new Token(Token.Type.OPERATOR, ";", 39)
                         ),
                         new ParseException("Function Before Global", 23)
+                ),
+                Arguments.of("List Trailing Comma",
+                        Arrays.asList(
+                                //LIST list = [1, ];
+                                new Token(Token.Type.IDENTIFIER, "LIST", 0),
+                                new Token(Token.Type.IDENTIFIER, "list", 5),
+                                new Token(Token.Type.OPERATOR, "=", 10),
+                                new Token(Token.Type.OPERATOR, "[", 12),
+                                new Token(Token.Type.INTEGER, "1", 13),
+                                new Token(Token.Type.OPERATOR, ",", 14),
+                                new Token(Token.Type.OPERATOR, "]", 16),
+                                new Token(Token.Type.OPERATOR, ";", 17)
+                        ),
+                        new ParseException("Trailing comma", 15)
+                ),
+                Arguments.of("List No Exprs",
+                        Arrays.asList(
+                                //LIST list = [];
+                                new Token(Token.Type.IDENTIFIER, "LIST", 0),
+                                new Token(Token.Type.IDENTIFIER, "list", 5),
+                                new Token(Token.Type.OPERATOR, "=", 10),
+                                new Token(Token.Type.OPERATOR, "[", 12),
+                                new Token(Token.Type.OPERATOR, "]", 13),
+                                new Token(Token.Type.OPERATOR, ";", 14)
+                        ),
+                        new ParseException("Missing Args", 13)
+                ),
+                Arguments.of("List Invalid Args",
+                        Arrays.asList(
+                                //LIST list = [1, ?];
+                                new Token(Token.Type.IDENTIFIER, "LIST", 0),
+                                new Token(Token.Type.IDENTIFIER, "list", 5),
+                                new Token(Token.Type.OPERATOR, "=", 10),
+                                new Token(Token.Type.OPERATOR, "[", 12),
+                                new Token(Token.Type.INTEGER, "1", 13),
+                                new Token(Token.Type.OPERATOR, ",", 14),
+                                new Token(Token.Type.OPERATOR, "?", 16),
+                                new Token(Token.Type.OPERATOR, "]", 17),
+                                new Token(Token.Type.OPERATOR, ";", 18)
+                        ),
+                        new ParseException("Invalid Arg", 16)
+                ),
+                Arguments.of("Missing Comma",
+                        Arrays.asList(
+                                //LIST list = [1 2];
+                                new Token(Token.Type.IDENTIFIER, "LIST", 0),
+                                new Token(Token.Type.IDENTIFIER, "list", 5),
+                                new Token(Token.Type.OPERATOR, "=", 10),
+                                new Token(Token.Type.OPERATOR, "[", 12),
+                                new Token(Token.Type.INTEGER, "1", 13),
+                                new Token(Token.Type.INTEGER, "2", 15),
+                                new Token(Token.Type.OPERATOR, "]", 16),
+                                new Token(Token.Type.OPERATOR, ";", 17)
+                        ),
+                        new ParseException("Missing Comma", 14)
+                ),
+                Arguments.of("Missing [",
+                        Arrays.asList(
+                                //LIST list = 1 2];
+                                new Token(Token.Type.IDENTIFIER, "LIST", 0),
+                                new Token(Token.Type.IDENTIFIER, "list", 5),
+                                new Token(Token.Type.OPERATOR, "=", 10),
+                                new Token(Token.Type.INTEGER, "1", 12),
+                                new Token(Token.Type.INTEGER, "2", 14),
+                                new Token(Token.Type.OPERATOR, "]", 15),
+                                new Token(Token.Type.OPERATOR, ";", 16)
+                        ),
+                        new ParseException("Missing [", 11)
+                ),
+                Arguments.of("Missing ]",
+                        Arrays.asList(
+                                //LIST list = [1, 2;
+                                new Token(Token.Type.IDENTIFIER, "LIST", 0),
+                                new Token(Token.Type.IDENTIFIER, "list", 5),
+                                new Token(Token.Type.OPERATOR, "=", 10),
+                                new Token(Token.Type.OPERATOR, "[", 12),
+                                new Token(Token.Type.INTEGER, "1", 13),
+                                new Token(Token.Type.OPERATOR, ",", 14),
+                                new Token(Token.Type.INTEGER, "2", 16),
+                                new Token(Token.Type.OPERATOR, ";", 17)
+                        ),
+                        new ParseException("Missing ]", 17)
                 )
         );
     }

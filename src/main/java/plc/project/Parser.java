@@ -87,17 +87,33 @@ public final class Parser {
         }
 
         List<Ast.Expression> exprs = new ArrayList<>();
-        Ast.Expression expr = parseExpression();
-        exprs.add(expr);
-        while (!match("]")) {
+        Ast.Expression expr;
+        try {
             expr = parseExpression();
             exprs.add(expr);
+        } catch (ParseException ex) {
+            throw new ParseException("Missing Args", getErrIndex());
+        }
+
+        while (!match("]") && tokens.has(1)) {
             if (peek(",", "]")) {
-                Token lastExp = tokens.get(0);
-                int errIndex = lastExp.getIndex()+1;
-                throw new ParseException("Trailing comma", errIndex);
+                match(",");
+                throw new ParseException("Trailing comma", getErrIndex());
             }
-            match(",");
+            if (match(",")) {
+                try {
+                    expr = parseExpression();
+                    exprs.add(expr);
+                } catch (ParseException ex) {
+                    throw new ParseException("Invalid Arg", getErrIndex()+1);
+                }
+            } else {
+                throw new ParseException("Missing Comma", getErrIndex());
+            }
+        }
+
+        if (!tokens.get(-1).getLiteral().equals("]")) {
+            throw new ParseException("Missing ]", getErrIndex());
         }
 
         Ast.Expression.PlcList list = new Ast.Expression.PlcList(exprs);
@@ -589,7 +605,7 @@ public final class Parser {
         if (match(Token.Type.IDENTIFIER)) {
             return new Ast.Expression.Access(Optional.empty(), tokens.get(-1).getLiteral());
         }
-        throw new ParseException("Invalid expression", tokens.index);
+        throw new ParseException("Invalid expression", getErrIndex());
     }
 
     private int getErrIndex() {
