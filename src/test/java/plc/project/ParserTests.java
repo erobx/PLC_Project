@@ -883,7 +883,7 @@ final class ParserTests {
                                 new Token(Token.Type.OPERATOR, "]", 13),
                                 new Token(Token.Type.OPERATOR, ";", 14)
                         ),
-                        new ParseException("Missing Args", 13)
+                        new ParseException("Missing Arg", 13)
                 ),
                 Arguments.of("List Invalid Args",
                         Arrays.asList(
@@ -898,7 +898,7 @@ final class ParserTests {
                                 new Token(Token.Type.OPERATOR, "]", 17),
                                 new Token(Token.Type.OPERATOR, ";", 18)
                         ),
-                        new ParseException("Invalid Arg", 16)
+                        new ParseException("Invalid Arg", 15)
                 ),
                 Arguments.of("Missing Comma",
                         Arrays.asList(
@@ -912,7 +912,7 @@ final class ParserTests {
                                 new Token(Token.Type.OPERATOR, "]", 16),
                                 new Token(Token.Type.OPERATOR, ";", 17)
                         ),
-                        new ParseException("Missing Comma", 14)
+                        new ParseException("Missing ]", 14)
                 ),
                 Arguments.of("Missing [",
                         Arrays.asList(
@@ -940,6 +940,47 @@ final class ParserTests {
                                 new Token(Token.Type.OPERATOR, ";", 17)
                         ),
                         new ParseException("Missing ]", 17)
+                ),
+                Arguments.of("Missing (",
+                        Arrays.asList(
+                                //FUN name y, z) DO END
+                                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.IDENTIFIER, "y", 9),
+                                new Token(Token.Type.OPERATOR, ",", 10),
+                                new Token(Token.Type.IDENTIFIER, "z", 11),
+                                new Token(Token.Type.OPERATOR, ")", 12),
+                                new Token(Token.Type.IDENTIFIER, "DO", 14),
+                                new Token(Token.Type.IDENTIFIER, "END", 17)
+                        ),
+                        new ParseException("Missing (", 8)
+                ),
+                Arguments.of("Missing )",
+                        Arrays.asList(
+                                //FUN name(y, z DO END
+                                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "(", 8),
+                                new Token(Token.Type.IDENTIFIER, "y", 9),
+                                new Token(Token.Type.OPERATOR, ",", 10),
+                                new Token(Token.Type.IDENTIFIER, "z", 12),
+                                new Token(Token.Type.IDENTIFIER, "DO", 14),
+                                new Token(Token.Type.IDENTIFIER, "END", 17)
+                        ),
+                        new ParseException("Missing )", 13)
+                ),
+                Arguments.of("Invalid Args",
+                        Arrays.asList(
+                                //FUN name(1) DO END
+                                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "(", 8),
+                                new Token(Token.Type.INTEGER, "1", 9),
+                                new Token(Token.Type.OPERATOR, ")", 10),
+                                new Token(Token.Type.IDENTIFIER, "DO", 12),
+                                new Token(Token.Type.IDENTIFIER, "END", 15)
+                        ),
+                        new ParseException("Invalid argument", 9)
                 )
         );
     }

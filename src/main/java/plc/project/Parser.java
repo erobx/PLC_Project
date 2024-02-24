@@ -88,31 +88,32 @@ public final class Parser {
 
         List<Ast.Expression> exprs = new ArrayList<>();
         Ast.Expression expr;
+
         try {
             expr = parseExpression();
             exprs.add(expr);
         } catch (ParseException ex) {
-            throw new ParseException("Missing Args", getErrIndex());
+            throw new ParseException("Missing Arg", getErrIndex());
         }
 
-        while (!match("]") && tokens.has(1)) {
-            if (peek(",", "]")) {
-                match(",");
-                throw new ParseException("Trailing comma", getErrIndex());
-            }
-            if (match(",")) {
-                try {
-                    expr = parseExpression();
-                    exprs.add(expr);
-                } catch (ParseException ex) {
-                    throw new ParseException("Invalid Arg", getErrIndex()+1);
+        boolean flag = false;
+        while (peek(",")) {
+            try {
+                if (peek(",", "]")) {
+                    match(",");
+                    flag = true;
+                    throw new ParseException("Trailing comma", getErrIndex());
                 }
-            } else {
-                throw new ParseException("Missing Comma", getErrIndex());
+                match(",");
+                expr = parseExpression();
+                exprs.add(expr);
+            } catch (ParseException ex) {
+                if (flag) throw ex;
+                throw new ParseException("Invalid Arg", getErrIndex());
             }
         }
 
-        if (!tokens.get(-1).getLiteral().equals("]")) {
+        if (!match("]")) {
             throw new ParseException("Missing ]", getErrIndex());
         }
 
@@ -151,14 +152,13 @@ public final class Parser {
     public Ast.Function parseFunction() throws ParseException {
         String name = getIdentifier();
         if (!match("(")) {
-            throw new ParseException("Missing left paren", getErrIndex());
+            throw new ParseException("Missing (", getErrIndex());
         }
         List<String> params = new ArrayList<>();
-        List<Ast.Statement> statements = new ArrayList<>();
 
-        while (!match(")")) {
+        while (!match(")") && tokens.has(1)) {
             if (!match(Token.Type.IDENTIFIER)) {
-                throw new ParseException("Invalid argument", getErrIndex());
+                throw new ParseException("Invalid argument", tokens.get(0).getIndex());
             }
             String arg = tokens.get(-1).getLiteral();
             params.add(arg);
@@ -173,7 +173,7 @@ public final class Parser {
         if (!match("DO")) {
             throw new ParseException("Missing DO", getErrIndex());
         }
-        statements = parseBlock();
+        List<Ast.Statement> statements = parseBlock();
 
         return new Ast.Function(name, params, statements);
     }
