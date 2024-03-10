@@ -158,7 +158,7 @@ public final class Parser {
 
         while (!match(")") && tokens.has(1)) {
             if (!match(Token.Type.IDENTIFIER)) {
-                throw new ParseException("Invalid argument", tokens.get(0).getIndex());
+                throw new ParseException("Invalid argument", getErrIndex());
             }
             String arg = tokens.get(-1).getLiteral();
             params.add(arg);
@@ -516,7 +516,7 @@ public final class Parser {
             String literal = tokens.get(-1).getLiteral();
             // Remove first and second '
             for (int i = 0; i < 2; i++) {
-                literal = literal.replace("'", "");
+                literal = literal.replaceFirst("'", "");
             }
             // Check for escapes
             char ch = literal.charAt(0);
@@ -538,6 +538,10 @@ public final class Parser {
                     case 'f':
                         ch = '\f';
                         break;
+                    case '\'':
+                        return new Ast.Expression.Literal("'");
+                    case '\"':
+                        return new Ast.Expression.Literal("\"");
                     default:
                         break;
                 }
@@ -605,6 +609,11 @@ public final class Parser {
         if (match(Token.Type.IDENTIFIER)) {
             return new Ast.Expression.Access(Optional.empty(), tokens.get(-1).getLiteral());
         }
+        if (tokens.tokens.size() == 1) {
+            throw new ParseException("Invalid expression", tokens.get(0).getIndex());
+        } else if (tokens.has(0)) {
+            throw new ParseException("Invalid expression", tokens.get(0).getIndex());
+        }
         throw new ParseException("Invalid expression", getErrIndex());
     }
 
@@ -619,7 +628,6 @@ public final class Parser {
         literal = literal.replace("\\r", "\r");
         literal = literal.replace("\\t", "\t");
         literal = literal.replace("\\'", "'");
-        literal = literal.replace("\\\\", "\\");
         return literal;
     }
 

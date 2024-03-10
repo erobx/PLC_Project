@@ -549,6 +549,26 @@ final class ParserTests {
                 Arguments.of("Escape Character",
                         Arrays.asList(new Token(Token.Type.STRING, "\"Hello,\\nWorld!\"", 0)),
                         new Ast.Expression.Literal("Hello,\nWorld!")
+                ),
+                Arguments.of("Escape \\'",
+                        Arrays.asList(new Token(Token.Type.CHARACTER, "'\\''", 0)),
+                        new Ast.Expression.Literal("'")
+                ),
+                Arguments.of("Escape \\\"",
+                        Arrays.asList(new Token(Token.Type.CHARACTER, "'\\\"'", 0)),
+                        new Ast.Expression.Literal("\"")
+                ),
+                Arguments.of("String Single Quote Escape",
+                        Arrays.asList(new Token(Token.Type.STRING, "\"\\'\"", 0)),
+                        new Ast.Expression.Literal("'")
+                ),
+                Arguments.of("String Double Quote Escape",
+                        Arrays.asList(new Token(Token.Type.STRING, "\"\\\"\"", 0)),
+                        new Ast.Expression.Literal("\"")
+                ),
+                Arguments.of("Blackslash Escape",
+                        Arrays.asList(new Token(Token.Type.STRING, "\"\\\\\"", 0)),
+                        new Ast.Expression.Literal("\\")
                 )
         );
     }
@@ -828,6 +848,13 @@ final class ParserTests {
                                 new Token(Token.Type.IDENTIFIER, "x", 0)
                         ),
                         new ParseException("Missing semicolon", 1)
+                ),
+                Arguments.of("Invalid Expression",
+                        Arrays.asList(
+                                //!
+                                new Token(Token.Type.OPERATOR, "!", 0)
+                        ),
+                        new ParseException("Invalid expression", 0)
                 )
         );
     }
