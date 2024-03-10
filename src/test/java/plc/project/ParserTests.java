@@ -708,6 +708,17 @@ final class ParserTests {
                         ),
                         new Ast.Expression.Function("name", Arrays.asList())
                 ),
+                Arguments.of("One Argument",
+                    Arrays.asList(
+                            new Token(Token.Type.IDENTIFIER, "name", 0),
+                            new Token(Token.Type.OPERATOR, "(", 4),
+                            new Token(Token.Type.IDENTIFIER, "x", 5),
+                            new Token(Token.Type.OPERATOR, ")", 6)
+                    ),
+                    new Ast.Expression.Function("name", Arrays.asList(
+                            new Ast.Expression.Access(Optional.empty(), "x")
+                    ))
+                    ),
                 Arguments.of("Multiple Arguments",
                         Arrays.asList(
                                 //name(expr1, expr2, expr3)
@@ -725,7 +736,22 @@ final class ParserTests {
                                 new Ast.Expression.Access(Optional.empty(), "expr2"),
                                 new Ast.Expression.Access(Optional.empty(), "expr3")
                         ))
+                ),
+                Arguments.of("Complex Argument",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "name", 0),
+                                new Token(Token.Type.OPERATOR, "(", 4),
+                                new Token(Token.Type.IDENTIFIER, "expr1", 5),
+                                new Token(Token.Type.OPERATOR, "/", 10),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 11),
+                                new Token(Token.Type.OPERATOR, ")", 16)
+                        ),
+                        new Ast.Expression.Function("name", Arrays.asList(
+                                new Ast.Expression.Binary("/", new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                        new Ast.Expression.Access(Optional.empty(), "expr2"))
+                        ))
                 )
+
         );
     }
 
@@ -1008,8 +1034,60 @@ final class ParserTests {
                                 new Token(Token.Type.IDENTIFIER, "END", 15)
                         ),
                         new ParseException("Invalid argument", 9)
+                ),
+                Arguments.of("Missing DO",
+                        Arrays.asList(
+                                //FUN name() END
+                                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "(", 8),
+                                new Token(Token.Type.OPERATOR, ")", 9),
+                                new Token(Token.Type.IDENTIFIER, "END", 10)
+                        ),
+                        new ParseException("Missing DO", 10)
+                ),
+                Arguments.of("DO wrong order",
+                        Arrays.asList(
+                                //FUN name() stmt DO END
+                                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "(", 8),
+                                new Token(Token.Type.OPERATOR, ")", 9),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 10),
+                                new Token(Token.Type.IDENTIFIER, "DO", 14),
+                                new Token(Token.Type.IDENTIFIER, "END", 17)
+                        ),
+                        new ParseException("Missing DO", 10)
+                ),
+                Arguments.of("Missing END",
+                        Arrays.asList(
+                                //FUN name() DO stmt;
+                                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "(", 8),
+                                new Token(Token.Type.OPERATOR, ")", 9),
+                                new Token(Token.Type.IDENTIFIER, "DO", 10),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 12),
+                                new Token(Token.Type.OPERATOR, ";", 16)
+
+                        ),
+                        new ParseException("Invalid expression", 17)
+                ),
+                Arguments.of("Missing Semicolon",
+                        Arrays.asList(
+                                //FUN name() DO stmt END
+                                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "(", 8),
+                                new Token(Token.Type.OPERATOR, ")", 9),
+                                new Token(Token.Type.IDENTIFIER, "DO", 10),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 12),
+                                new Token(Token.Type.OPERATOR, "END", 16)
+
+                        ),
+                        new ParseException("Missing semicolon", 16)
                 )
-        );
+        ); // TODO: Add more complex parseFunction() test cases
     }
 
     private static <T extends Ast> void testParseException(List<Token> tokens, Exception exception, Function<Parser, T> function) {
