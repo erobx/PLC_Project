@@ -32,9 +32,9 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     @Override
     public Environment.PlcObject visit(Ast.Global ast) {
         Optional<Ast.Expression> values = ast.getValue();
-        Environment.PlcObject obj = values.map(this::visit).orElse(Environment.NIL);
+        Environment.PlcObject obj = values.map(this::visit).orElseGet(() -> Environment.NIL);
         scope.getParent().defineVariable(ast.getName(), ast.getMutable(), obj);
-        return obj;
+        return Environment.NIL;
     }
 
     @Override
@@ -102,17 +102,25 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         Optional<Ast.Expression> exp = ast.getOffset();
 
         if (exp.isPresent()) {
-            Ast.Expression.Literal literal = (Ast.Expression.Literal) exp.get();
-            BigInteger temp = (BigInteger) literal.getLiteral();
+            Environment.PlcObject value = exp.map(this::visit).orElseGet(() -> Environment.NIL);
+            BigInteger temp = requireType(BigInteger.class, value);
             int offset = temp.intValue();
 
             Environment.Variable var = scope.lookupVariable(ast.getName());
             List list = requireType(List.class, var.getValue());
-            Object value = list.get(offset);
 
-            return new Environment.PlcObject(scope, value);
+            if (offset < 0 || offset > list.size()-1) {
+                throw new RuntimeException("Invalid offset");
+            }
+
+            Object access = list.get(offset);
+            System.out.println(access);
+
+            return new Environment.PlcObject(null, access);
         }
-        return new Environment.PlcObject(scope, ast.getName());
+
+        Object returnValue = scope.lookupVariable(ast.getName()).getValue().getValue();
+        return new Environment.PlcObject(getScope().getParent().getParent(), returnValue);
     }
 
     @Override
@@ -122,7 +130,6 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Expression.PlcList ast) {
-        // Convert Ast.Expressions into Objects
         List<Object> objects = new ArrayList<>();
         for (Ast.Expression exp : ast.getValues()) {
             objects.add(visit(exp).getValue());

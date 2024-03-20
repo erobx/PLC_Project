@@ -377,6 +377,8 @@ final class InterpreterTests {
     void testAccessExpression(String test, Ast ast, Object expected) {
         Scope scope = new Scope(null);
         scope.defineVariable("variable", true, Environment.create("variable"));
+        List<Object> list = Arrays.asList(BigInteger.ONE, BigInteger.valueOf(5), BigInteger.TEN);
+        scope.defineVariable("list", true, Environment.create(list));
         test(ast, expected, scope);
     }
 
