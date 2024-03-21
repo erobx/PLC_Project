@@ -89,12 +89,35 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Expression.Group ast) {
-        throw new UnsupportedOperationException(); //TODO
+        System.out.println(ast);
+        return visit(ast.getExpression());
     }
 
     @Override
     public Environment.PlcObject visit(Ast.Expression.Binary ast) {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression lhs = ast.getLeft();
+        Ast.Expression rhs = ast.getRight();
+        switch (ast.getOperator()) {
+            case "+":
+                // Check if LHS is String
+                if (visit(lhs).getValue().getClass().equals(String.class)) {
+                    break;
+                }
+                // BigInteger
+                if (visit(lhs).getValue().getClass().equals(BigInteger.class)) {
+                    BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
+                    BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+                    BigInteger addedVal = leftVal.add(rightVal);
+                    return Environment.create(addedVal);
+                }
+                break;
+            case "-":
+                System.out.println("Subtracting");
+            default:
+                break;
+        }
+
+        return null;
     }
 
     @Override
@@ -116,11 +139,11 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
             Object access = list.get(offset);
             System.out.println(access);
 
-            return new Environment.PlcObject(null, access);
+            return Environment.create(access);
         }
 
         Object returnValue = scope.lookupVariable(ast.getName()).getValue().getValue();
-        return new Environment.PlcObject(getScope().getParent().getParent(), returnValue);
+        return Environment.create(returnValue);
     }
 
     @Override
@@ -134,7 +157,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         for (Ast.Expression exp : ast.getValues()) {
             objects.add(visit(exp).getValue());
         }
-        return new Environment.PlcObject(new Scope(null), objects);
+        return Environment.create(objects);
     }
 
     /**
