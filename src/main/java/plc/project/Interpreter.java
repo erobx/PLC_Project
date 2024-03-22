@@ -54,7 +54,14 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Statement.Assignment ast) {
-        throw new UnsupportedOperationException(); //TODO
+        // Basic assignment, need to add checks later
+        Ast.Expression.Access receiver = (Ast.Expression.Access) ast.getReceiver();
+        Environment.PlcObject value = visit(ast.getValue());
+
+        Environment.Variable variable = scope.lookupVariable(receiver.getName());
+        variable.setValue(value);
+
+        return Environment.NIL;
     }
 
     @Override
