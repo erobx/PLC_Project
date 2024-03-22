@@ -97,27 +97,86 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     public Environment.PlcObject visit(Ast.Expression.Binary ast) {
         Ast.Expression lhs = ast.getLeft();
         Ast.Expression rhs = ast.getRight();
+        Object checkClass = visit(lhs).getValue().getClass();
         switch (ast.getOperator()) {
             case "+":
                 // Check if LHS is String
-                if (visit(lhs).getValue().getClass().equals(String.class)) {
-                    break;
+                if (checkClass.equals(String.class)) {
+                    String leftVal = requireType(String.class, visit(lhs));
+                    String rightVal = requireType(String.class, visit(rhs));
+                    String concat = leftVal + rightVal;
+                    return Environment.create(concat);
                 }
                 // BigInteger
-                if (visit(lhs).getValue().getClass().equals(BigInteger.class)) {
-                    BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
-                    BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
-                    BigInteger addedVal = leftVal.add(rightVal);
-                    return Environment.create(addedVal);
+                if (checkClass.equals(BigInteger.class)) {
+                    return Environment.create(bigIntegerAdd(lhs, rhs));
+                }
+                // BigDecimal
+                if (checkClass.equals(BigDecimal.class)) {
+                    return Environment.create(bigDecimalAdd(lhs, rhs));
                 }
                 break;
             case "-":
-                System.out.println("Subtracting");
+                // BigInteger
+                if (checkClass.equals(BigInteger.class)) {
+                    return Environment.create(bigIntegerSub(lhs, rhs));
+                }
+                // BigDecimal
+                if (checkClass.equals(BigDecimal.class)) {
+                    return Environment.create(bigDecimalSub(lhs, rhs));
+                }
+                break;
+            case "*":
+                // BigInteger
+                if (checkClass.equals(BigInteger.class)) {
+                   return Environment.create(bigIntegerMult(lhs, rhs));
+                }
+                // BigDecimal
+                if (checkClass.equals(BigDecimal.class)) {
+                    return Environment.create(bigDecimalMult(lhs, rhs));
+                }
+                break;
             default:
                 break;
         }
 
         return null;
+    }
+
+    private BigInteger bigIntegerAdd(Ast.Expression lhs, Ast.Expression rhs) {
+        BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
+        BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+        return leftVal.add(rightVal);
+    }
+
+    private BigInteger bigIntegerSub(Ast.Expression lhs, Ast.Expression rhs) {
+        BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
+        BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+        return leftVal.subtract(rightVal);
+    }
+
+    private BigInteger bigIntegerMult(Ast.Expression lhs, Ast.Expression rhs) {
+        BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
+        BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+        return leftVal.multiply(rightVal);
+    }
+
+    private BigDecimal bigDecimalAdd(Ast.Expression lhs, Ast.Expression rhs) {
+        BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
+        BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
+        return leftVal.add(rightVal);
+    }
+
+    private BigDecimal bigDecimalSub(Ast.Expression lhs, Ast.Expression rhs) {
+        BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
+        BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
+        return leftVal.subtract(rightVal);
+    }
+
+    private BigDecimal bigDecimalMult(Ast.Expression lhs, Ast.Expression rhs) {
+        BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
+        BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
+        return leftVal.multiply(rightVal);
     }
 
     @Override
