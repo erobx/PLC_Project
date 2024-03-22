@@ -98,7 +98,28 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         Ast.Expression lhs = ast.getLeft();
         Ast.Expression rhs = ast.getRight();
         Object checkClass = visit(lhs).getValue().getClass();
+        RuntimeException err = new RuntimeException("Invalid class type");
         switch (ast.getOperator()) {
+            case "&&":
+                if (checkClass.equals(Boolean.class)) {
+                    Boolean leftVal = requireType(Boolean.class, visit(lhs));
+                    Boolean rightVal = requireType(Boolean.class, visit(rhs));
+                    Boolean compare = leftVal.booleanValue() == rightVal.booleanValue();
+                    return Environment.create(compare);
+                }
+                throw err;
+            case "||":
+                if (checkClass.equals(Boolean.class)) {
+                    Boolean leftVal = requireType(Boolean.class, visit(lhs));
+                    if (leftVal) {
+                        return Environment.create(leftVal);
+                    }
+                    Boolean rightVal = requireType(Boolean.class, visit(rhs));
+                    if (rightVal) {
+                        return Environment.create(rightVal);
+                    }
+                }
+                throw err;
             case "+":
                 // Check if LHS is String
                 if (checkClass.equals(String.class)) {
@@ -107,40 +128,45 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                     String concat = leftVal + rightVal;
                     return Environment.create(concat);
                 }
-                // BigInteger
                 if (checkClass.equals(BigInteger.class)) {
                     return Environment.create(bigIntegerAdd(lhs, rhs));
                 }
-                // BigDecimal
                 if (checkClass.equals(BigDecimal.class)) {
                     return Environment.create(bigDecimalAdd(lhs, rhs));
                 }
-                break;
+                throw err;
             case "-":
-                // BigInteger
                 if (checkClass.equals(BigInteger.class)) {
                     return Environment.create(bigIntegerSub(lhs, rhs));
                 }
-                // BigDecimal
                 if (checkClass.equals(BigDecimal.class)) {
                     return Environment.create(bigDecimalSub(lhs, rhs));
                 }
-                break;
+                throw err;
             case "*":
-                // BigInteger
                 if (checkClass.equals(BigInteger.class)) {
                    return Environment.create(bigIntegerMult(lhs, rhs));
                 }
-                // BigDecimal
                 if (checkClass.equals(BigDecimal.class)) {
                     return Environment.create(bigDecimalMult(lhs, rhs));
                 }
-                break;
+                throw err;
+            case "/":
+                if (checkClass.equals(BigInteger.class)) {
+                    return Environment.create(bigIntegerDiv(lhs, rhs));
+                }
+                if (checkClass.equals(BigDecimal.class)) {
+                    return Environment.create(bigDecimalDiv(lhs, rhs));
+                }
+                throw err;
+            case "^":
+                if (checkClass.equals(BigInteger.class)) {
+                    return Environment.create(bigIntegerExp(lhs, rhs));
+                }
+                throw err;
             default:
-                break;
+                throw err;
         }
-
-        return null;
     }
 
     private BigInteger bigIntegerAdd(Ast.Expression lhs, Ast.Expression rhs) {
@@ -161,6 +187,18 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         return leftVal.multiply(rightVal);
     }
 
+    private BigInteger bigIntegerDiv(Ast.Expression lhs, Ast.Expression rhs) {
+        BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
+        BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+        return leftVal.divide(rightVal);
+    }
+
+    private BigInteger bigIntegerExp(Ast.Expression lhs, Ast.Expression rhs) {
+        BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
+        BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+        return leftVal.pow(rightVal.intValue());
+    }
+
     private BigDecimal bigDecimalAdd(Ast.Expression lhs, Ast.Expression rhs) {
         BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
         BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
@@ -177,6 +215,12 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
         BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
         return leftVal.multiply(rightVal);
+    }
+
+    private BigDecimal bigDecimalDiv(Ast.Expression lhs, Ast.Expression rhs) {
+        BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
+        BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
+        return leftVal.divide(rightVal, RoundingMode.HALF_EVEN);
     }
 
     @Override
