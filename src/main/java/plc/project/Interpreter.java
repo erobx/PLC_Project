@@ -179,6 +179,32 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                     return Environment.create(bigIntegerExp(lhs, rhs));
                 }
                 throw err;
+            case "==":
+                if (checkClass.equals(BigInteger.class)) {
+                    BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
+                    BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+                    Boolean compare = leftVal.compareTo(rightVal) == 0;
+                    return Environment.create(compare);
+                }
+                if (checkClass.equals(BigDecimal.class)) {
+                    BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
+                    BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
+                    Boolean compare = leftVal.compareTo(rightVal) == 0;
+                    return Environment.create(compare);
+                }
+                if (checkClass.equals(String.class)) {
+                    String leftVal = requireType(String.class, visit(lhs));
+                    String rightVal = requireType(String.class, visit(rhs));
+                    Boolean compare = leftVal.equals(rightVal);
+                    return Environment.create(compare);
+                }
+                if (checkClass.equals(Boolean.class)) {
+                    Boolean leftVal = requireType(Boolean.class, visit(lhs));
+                    Boolean rightVal = requireType(Boolean.class, visit(rhs));
+                    Boolean compare = leftVal.equals(rightVal);
+                    return Environment.create(compare);
+                }
+                throw err;
             default:
                 throw err;
         }
