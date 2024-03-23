@@ -27,7 +27,21 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Source ast) {
-        throw new UnsupportedOperationException(); //TODO
+        // Evaluate globals then functions
+        for (Ast.Global g : ast.getGlobals()) {
+            visit(g);
+        }
+        for (Ast.Function f : ast.getFunctions()) {
+            visit(f);
+        }
+        // Check if main exists
+        try {
+            // Should return the value of the main function
+            return scope.lookupFunction("main", 0).invoke(Arrays.asList());
+        } catch (RuntimeException ex) {
+            System.out.println("Missing main");
+        }
+        return null;
     }
 
     @Override
