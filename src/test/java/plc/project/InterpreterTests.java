@@ -83,6 +83,7 @@ final class InterpreterTests {
     @MethodSource
     void testFunction(String test, Ast.Function ast, List<Environment.PlcObject> args, Object expected) {
         Scope scope = test(ast, Environment.NIL.getValue(), new Scope(null));
+        scope.defineVariable("x", true, Environment.create(BigInteger.valueOf(10)));
         Assertions.assertEquals(expected, scope.lookupFunction(ast.getName(), args.size()).invoke(args).getValue());
     }
 

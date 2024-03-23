@@ -40,7 +40,34 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Function ast) {
-        throw new UnsupportedOperationException(); //TODO
+        scope.defineFunction(ast.getName(), ast.getParameters().size(), args -> {
+            // Change scope to scope of function
+            Scope childScope = new Scope(scope);
+
+            // Define new variables for childScope, checking if they already exist before
+            for (String p : ast.getParameters()) {
+                try {
+                    Environment.Variable v = childScope.lookupVariable(p);
+                    childScope.defineVariable(v.getName(), v.getMutable(), v.getValue());
+                } catch (RuntimeException ex) {
+                    System.out.println(ex);
+                }
+            }
+
+            // Evaluate function statements => return value in Return exception if thrown or NIL if not
+            for (Ast.Statement stmt : ast.getStatements()) {
+                try {
+                    visit(stmt);
+                } catch (Return ex) {
+                    return ex.value;
+                }
+            }
+
+            // Return to parent scope
+            scope = childScope.getParent();
+            return Environment.NIL;
+        });
+        return Environment.NIL;
     }
 
     @Override
@@ -127,7 +154,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Statement.Return ast) {
-        throw new UnsupportedOperationException(); //TODO
+        throw new Return(visit(ast.getValue()));
     }
 
     @Override
@@ -441,7 +468,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     /**
      * Exception class for returning values.
      */
-    private static class Return extends RuntimeException {
+    public static class Return extends RuntimeException {
 
         private final Environment.PlcObject value;
 
