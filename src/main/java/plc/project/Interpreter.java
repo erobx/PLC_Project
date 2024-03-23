@@ -28,12 +28,8 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     @Override
     public Environment.PlcObject visit(Ast.Source ast) {
         // Evaluate globals then functions
-        for (Ast.Global g : ast.getGlobals()) {
-            visit(g);
-        }
-        for (Ast.Function f : ast.getFunctions()) {
-            visit(f);
-        }
+        ast.getGlobals().forEach(this::visit);
+        ast.getFunctions().forEach(this::visit);
         // Check if main exists
         try {
             // Should return the value of the main function
@@ -161,9 +157,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     @Override
     public Environment.PlcObject visit(Ast.Statement.Case ast) {
         // Evaluate statements
-        for (Ast.Statement s : ast.getStatements()) {
-            visit(s);
-        }
+        ast.getStatements().forEach(this::visit);
         return Environment.NIL;
     }
 
