@@ -127,20 +127,125 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                 if (checkClass.equals(Boolean.class)) {
                     Boolean leftVal = requireType(Boolean.class, visit(lhs));
                     if (leftVal) {
-                        return Environment.create(leftVal);
+                        return Environment.create(Boolean.TRUE);
                     }
                     Boolean rightVal = requireType(Boolean.class, visit(rhs));
                     if (rightVal) {
-                        return Environment.create(rightVal);
+                        return Environment.create(Boolean.TRUE);
                     }
+                    return Environment.create(Boolean.FALSE);
                 }
                 throw err;
-            case "+":
-                // Check if LHS is String
+            case "<":
+                if (checkClass.equals(BigInteger.class)) {
+                    BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
+                    BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+                    Boolean compare = leftVal.compareTo(rightVal) < 0;
+                    return Environment.create(compare);
+                }
+                if (checkClass.equals(BigDecimal.class)) {
+                    BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
+                    BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
+                    Boolean compare = leftVal.compareTo(rightVal) < 0;
+                    return Environment.create(compare);
+                }
+                if (checkClass.equals(Boolean.class)) {
+                    Boolean leftVal = requireType(Boolean.class, visit(lhs));
+                    Boolean rightVal = requireType(Boolean.class, visit(rhs));
+                    Boolean compare = leftVal.compareTo(rightVal) < 0;
+                    return Environment.create(compare);
+                }
                 if (checkClass.equals(String.class)) {
                     String leftVal = requireType(String.class, visit(lhs));
                     String rightVal = requireType(String.class, visit(rhs));
-                    String concat = leftVal + rightVal;
+                    Boolean compare = leftVal.compareTo(rightVal) < 0;
+                    return Environment.create(compare);
+                }
+                throw err;
+            case ">":
+                if (checkClass.equals(BigInteger.class)) {
+                    BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
+                    BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+                    Boolean compare = leftVal.compareTo(rightVal) > 0;
+                    return Environment.create(compare);
+                }
+                if (checkClass.equals(BigDecimal.class)) {
+                    BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
+                    BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
+                    Boolean compare = leftVal.compareTo(rightVal) > 0;
+                    return Environment.create(compare);
+                }
+                if (checkClass.equals(Boolean.class)) {
+                    Boolean leftVal = requireType(Boolean.class, visit(lhs));
+                    Boolean rightVal = requireType(Boolean.class, visit(rhs));
+                    Boolean compare = leftVal.compareTo(rightVal) > 0;
+                    return Environment.create(compare);
+                }
+                if (checkClass.equals(String.class)) {
+                    String leftVal = requireType(String.class, visit(lhs));
+                    String rightVal = requireType(String.class, visit(rhs));
+                    Boolean compare = leftVal.compareTo(rightVal) > 0;
+                    return Environment.create(compare);
+                }
+                throw err;
+            case "==":
+                if (checkClass.equals(BigInteger.class)) {
+                    BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
+                    BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+                    Boolean compare = leftVal.equals(rightVal);
+                    return Environment.create(compare);
+                }
+                if (checkClass.equals(BigDecimal.class)) {
+                    BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
+                    BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
+                    Boolean compare = leftVal.equals(rightVal);
+                    return Environment.create(compare);
+                }
+                if (checkClass.equals(String.class)) {
+                    String leftVal = requireType(String.class, visit(lhs));
+                    String rightVal = requireType(String.class, visit(rhs));
+                    Boolean compare = leftVal.equals(rightVal);
+                    return Environment.create(compare);
+                }
+                if (checkClass.equals(Boolean.class)) {
+                    Boolean leftVal = requireType(Boolean.class, visit(lhs));
+                    Boolean rightVal = requireType(Boolean.class, visit(rhs));
+                    Boolean compare = leftVal.equals(rightVal);
+                    return Environment.create(compare);
+                }
+                throw err;
+            case "!=":
+                if (checkClass.equals(BigInteger.class)) {
+                    BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
+                    BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+                    Boolean compare = !leftVal.equals(rightVal);
+                    return Environment.create(compare);
+                }
+                if (checkClass.equals(BigDecimal.class)) {
+                    BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
+                    BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
+                    Boolean compare = !leftVal.equals(rightVal);
+                    return Environment.create(compare);
+                }
+                if (checkClass.equals(String.class)) {
+                    String leftVal = requireType(String.class, visit(lhs));
+                    String rightVal = requireType(String.class, visit(rhs));
+                    Boolean compare = !leftVal.equals(rightVal);
+                    return Environment.create(compare);
+                }
+                if (checkClass.equals(Boolean.class)) {
+                    Boolean leftVal = requireType(Boolean.class, visit(lhs));
+                    Boolean rightVal = requireType(Boolean.class, visit(rhs));
+                    Boolean compare = !leftVal.equals(rightVal);
+                    return Environment.create(compare);
+                }
+                throw err;
+            case "+":
+                // If either expression is a String concat
+                if (checkClass.equals(String.class) || visit(rhs).getValue().getClass().equals(String.class)) {
+                    String leftVal = visit(lhs).getValue().toString();
+                    String rightVal = visit(rhs).getValue().toString();
+                    String concat = leftVal.concat(rightVal);
                     return Environment.create(concat);
                 }
                 if (checkClass.equals(BigInteger.class)) {
@@ -177,46 +282,6 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
             case "^":
                 if (checkClass.equals(BigInteger.class)) {
                     return Environment.create(bigIntegerExp(lhs, rhs));
-                }
-                throw err;
-            case "==":
-                if (checkClass.equals(BigInteger.class)) {
-                    BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
-                    BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
-                    Boolean compare = leftVal.compareTo(rightVal) == 0;
-                    return Environment.create(compare);
-                }
-                if (checkClass.equals(BigDecimal.class)) {
-                    BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
-                    BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
-                    Boolean compare = leftVal.compareTo(rightVal) == 0;
-                    return Environment.create(compare);
-                }
-                if (checkClass.equals(String.class)) {
-                    String leftVal = requireType(String.class, visit(lhs));
-                    String rightVal = requireType(String.class, visit(rhs));
-                    Boolean compare = leftVal.equals(rightVal);
-                    return Environment.create(compare);
-                }
-                if (checkClass.equals(Boolean.class)) {
-                    Boolean leftVal = requireType(Boolean.class, visit(lhs));
-                    Boolean rightVal = requireType(Boolean.class, visit(rhs));
-                    Boolean compare = leftVal.equals(rightVal);
-                    return Environment.create(compare);
-                }
-                throw err;
-            case "<":
-                if (checkClass.equals(BigInteger.class)) {
-                    BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
-                    BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
-                    Boolean compare = leftVal.compareTo(rightVal) < 0;
-                    return Environment.create(compare);
-                }
-                if (checkClass.equals(BigDecimal.class)) {
-                    BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
-                    BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
-                    Boolean compare = leftVal.compareTo(rightVal) < 0;
-                    return Environment.create(compare);
                 }
                 throw err;
             default:
