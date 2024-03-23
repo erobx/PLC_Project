@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+import java.util.function.Function;
 
 final class InterpreterTests {
 
@@ -498,6 +499,33 @@ final class InterpreterTests {
         test(ast, expected, new Scope(null));
     }
 
+    @ParameterizedTest
+    @MethodSource
+    void testRuntimes(String test, Scope scope, List<Ast> asts, RuntimeException expected) {
+        testRuntimeException(scope, expected, asts);
+    }
+
+    private static Stream<Arguments> testRuntimes() {
+        return Stream.of(
+                Arguments.of("Redefined global",
+                    new Scope(null),
+                    // VAR name; VAR name = 1;
+                        Arrays.asList(
+                            new Ast.Global("name", true, Optional.empty()),
+                            new Ast.Global("name", true, Optional.of(new Ast.Expression.Literal(BigInteger.ONE)))
+                        ),
+                    new RuntimeException("The variable name is already defined in this scope.")
+                ),
+                Arguments.of("Whilw w/String",
+                    new Scope(null),
+                    // WHILE "false" DO END
+                    Arrays.asList(
+                            new Ast.Statement.While(new Ast.Expression.Literal("false"), Arrays.asList())),
+                    new RuntimeException("Expected type java.lang.Boolean, received java.lang.String.")
+                )
+        );
+    }
+
     private static Scope test(Ast ast, Object expected, Scope scope) {
         Interpreter interpreter = new Interpreter(scope);
         if (expected != null) {
@@ -506,6 +534,12 @@ final class InterpreterTests {
             Assertions.assertThrows(RuntimeException.class, () -> interpreter.visit(ast));
         }
         return interpreter.getScope();
+    }
+
+    private static void testRuntimeException(Scope scope, Exception exception, List<Ast> asts) {
+        Interpreter interpreter = new Interpreter(scope);
+        RuntimeException rex = Assertions.assertThrows(RuntimeException.class, () -> asts.forEach(interpreter::visit));
+        Assertions.assertEquals(exception, rex);
     }
 
 }
