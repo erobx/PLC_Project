@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -54,12 +55,28 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Statement.Assignment ast) {
-        // Basic assignment, need to add checks later
-        Ast.Expression.Access receiver = (Ast.Expression.Access) ast.getReceiver();
-        Environment.PlcObject value = visit(ast.getValue());
+        try {
+            Ast.Expression.Access receiver = (Ast.Expression.Access) ast.getReceiver();
+            Environment.PlcObject value = visit(ast.getValue());
 
-        Environment.Variable variable = scope.lookupVariable(receiver.getName());
-        variable.setValue(value);
+            // Dealing with lists, super jank stuff
+            if (receiver.getOffset().isPresent()) {
+                Ast.Expression tempOffset = receiver.getOffset().get();
+                BigInteger bigOffset = requireType(BigInteger.class, visit(tempOffset));
+                int offset = bigOffset.intValue();
+
+                Environment.PlcObject obj = scope.lookupVariable(receiver.getName()).getValue();
+                List list = requireType(List.class, obj);
+                list.set(offset, value.getValue());
+
+                scope.lookupVariable(receiver.getName()).setValue(Environment.create(list));
+                return Environment.NIL;
+            }
+
+            scope.lookupVariable(receiver.getName()).setValue(value);
+        } catch (RuntimeException ex) {
+            throw new RuntimeException(ex);
+        }
 
         return Environment.NIL;
     }
@@ -359,7 +376,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
             }
 
             Object access = list.get(offset);
-            System.out.println(access);
+//            System.out.println(access);
 
             return Environment.create(access);
         }

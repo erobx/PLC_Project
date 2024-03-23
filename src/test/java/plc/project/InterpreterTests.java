@@ -165,7 +165,6 @@ final class InterpreterTests {
         // list[2] = 3;
         List<Object> expected = Arrays.asList(BigInteger.ONE, BigInteger.valueOf(5), BigInteger.valueOf(3));
         List<Object> list = Arrays.asList(BigInteger.ONE, BigInteger.valueOf(5), BigInteger.TEN);
-
         Scope scope = new Scope(null);
         scope.defineVariable("list", true, Environment.create(list));
         test(new Ast.Statement.Assignment(
