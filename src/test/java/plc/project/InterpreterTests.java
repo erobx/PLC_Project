@@ -259,6 +259,34 @@ final class InterpreterTests {
     }
 
     @Test
+    void testDefaultSwitchCase() {
+        // SWITCH letter CASE 'y': print("yes"); DEFAULT print("no"); END
+        Scope scope = new Scope(null);
+        scope.defineVariable("letter", true, Environment.create(new Character('n')));
+
+        List<Ast.Statement> statements = Arrays.asList(
+                new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Literal("yes"))))
+        );
+
+        List<Ast.Statement.Case> cases = Arrays.asList(
+                new Ast.Statement.Case(Optional.of(new Ast.Expression.Literal(new Character('y'))), statements),
+                new Ast.Statement.Case(Optional.empty(), Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Literal("no"))))))
+        );
+
+        Ast.Statement.Switch ast = new Ast.Statement.Switch(new Ast.Expression.Access(Optional.empty(), "letter"), cases);
+
+        PrintStream sysout = System.out;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(out));
+        try {
+            test(ast, Environment.NIL.getValue(), scope);
+            Assertions.assertEquals("no" + System.lineSeparator(), out.toString());
+        } finally {
+            System.setOut(sysout);
+        }
+    }
+
+    @Test
     void testWhileStatement() {
         // WHILE num < 10 DO num = num + 1; END
         Scope scope = new Scope(null);

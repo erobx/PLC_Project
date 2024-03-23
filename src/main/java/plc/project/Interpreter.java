@@ -45,7 +45,8 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Statement.Expression ast) {
-        throw new UnsupportedOperationException(); //TODO
+        visit(ast.getExpression());
+        return Environment.NIL;
     }
 
     @Override
@@ -96,12 +97,27 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Statement.Switch ast) {
-        throw new UnsupportedOperationException(); //TODO
+        Object conditionValue = visit(ast.getCondition()).getValue();
+        List<Ast.Statement.Case> cases = ast.getCases();
+
+        for (Ast.Statement.Case c : cases) {
+            if (c.getValue().isPresent()) {
+                Environment.PlcObject temp = c.getValue().map(this::visit).orElseGet(() -> Environment.NIL);
+                if (temp.getValue().equals(conditionValue)) {
+                    return visit(c);
+                }
+            }
+        }
+        return visit(cases.getLast());
     }
 
     @Override
     public Environment.PlcObject visit(Ast.Statement.Case ast) {
-        throw new UnsupportedOperationException(); //TODO
+        // Evaluate statements
+        for (Ast.Statement s : ast.getStatements()) {
+            visit(s);
+        }
+        return Environment.NIL;
     }
 
     @Override
