@@ -65,14 +65,11 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
             }
 
             // Evaluate function statements => return value in Return exception if thrown or NIL if not
-            for (Ast.Statement stmt : ast.getStatements()) {
-                try {
-                    visit(stmt);
-                } catch (Return ex) {
-                    return ex.value;
-                }
+            try {
+                ast.getStatements().forEach(this::visit);
+            } catch (Return ex) {
+                return ex.value;
             }
-
             // Return to parent scope
             scope = childScope.getParent();
             return Environment.NIL;

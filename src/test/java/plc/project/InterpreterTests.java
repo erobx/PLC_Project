@@ -14,7 +14,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
-import java.util.function.Function;
 
 final class InterpreterTests {
 
@@ -497,6 +496,46 @@ final class InterpreterTests {
         Ast ast = new Ast.Expression.PlcList(values);
 
         test(ast, expected, new Scope(null));
+    }
+
+    @Test
+    void testScope() {
+    /*
+    VAR x = 1;
+    VAR y = 2;
+    VAR z = 3;
+    FUN f(z) DO
+        RETURN x + y + z;
+    END
+    FUN main() DO
+        LET y = 4;
+        RETURN f(5);
+    END
+     */
+        List<Ast.Global> globals = Arrays.asList(
+                new Ast.Global("x", true, Optional.of(new Ast.Expression.Literal(BigInteger.ONE))),
+                new Ast.Global("y", true, Optional.of(new Ast.Expression.Literal(BigInteger.valueOf(2)))),
+                new Ast.Global("z", true, Optional.of(new Ast.Expression.Literal(BigInteger.valueOf(3))))
+        );
+
+        List<Ast.Statement> statements = Arrays.asList(
+                new Ast.Statement.Declaration("y", Optional.of(new Ast.Expression.Literal(BigInteger.valueOf(4)))),
+                new Ast.Statement.Return(new Ast.Expression.Function("f", Arrays.asList(new Ast.Expression.Literal(BigInteger.valueOf(5)))))
+        );
+
+        List<Ast.Function> functions = Arrays.asList(
+                new Ast.Function("main", Arrays.asList(), statements),
+                new Ast.Function("f", Arrays.asList("z"), Arrays.asList(new Ast.Statement.Return(
+                        new Ast.Expression.Binary("+",
+                                new Ast.Expression.Binary("+", new Ast.Expression.Access(Optional.empty(), "x"), new Ast.Expression.Access(Optional.empty(), "y")),
+                                new Ast.Expression.Access(Optional.empty(), "z")))
+                ))
+        );
+
+        Ast.Source src = new Ast.Source(globals, functions);
+        Object expected = BigInteger.valueOf(8);
+
+        test(src, expected, new Scope(null));
     }
 
     @ParameterizedTest
