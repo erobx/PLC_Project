@@ -205,6 +205,20 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                     return Environment.create(compare);
                 }
                 throw err;
+            case "<":
+                if (checkClass.equals(BigInteger.class)) {
+                    BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
+                    BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+                    Boolean compare = leftVal.compareTo(rightVal) < 0;
+                    return Environment.create(compare);
+                }
+                if (checkClass.equals(BigDecimal.class)) {
+                    BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
+                    BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
+                    Boolean compare = leftVal.compareTo(rightVal) < 0;
+                    return Environment.create(compare);
+                }
+                throw err;
             default:
                 throw err;
         }
