@@ -92,7 +92,13 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Statement.Declaration ast) {
-        throw new UnsupportedOperationException(); //TODO (in lecture)
+        // Source: Peter Dobbins Lecture 25 25:05
+        if ( ast.getValue().isPresent()) {
+            scope.defineVariable(ast.getName(), true, visit(ast.getValue().get()));
+        }else {
+            scope.defineVariable(ast.getName(), true, Environment.NIL);
+        }
+        return Environment.NIL;
     }
 
     @Override
