@@ -204,6 +204,25 @@ final class InterpreterTests {
                                 Arrays.asList(new Ast.Statement.Assignment(new Ast.Expression.Access(Optional.empty(),"num"), new Ast.Expression.Literal(BigInteger.TEN)))
                         ),
                         BigInteger.TEN
+                ),
+                // IF 1 == 1 DO num = 10; END
+                Arguments.of("Binary Condition",
+                        new Ast.Statement.If(
+                                new Ast.Expression.Binary("==", new Ast.Expression.Literal(BigInteger.ONE), new Ast.Expression.Literal(BigInteger.ONE)),
+                                Arrays.asList(new Ast.Statement.Assignment(new Ast.Expression.Access(Optional.empty(), "num"), new Ast.Expression.Literal(BigInteger.TEN))),
+                                Arrays.asList()
+                        ),
+                        BigInteger.TEN
+                ),
+                // IF (0 < 1) DO num = 10; END
+                Arguments.of("Binary Condition",
+                        new Ast.Statement.If(
+                                new Ast.Expression.Group(
+                                new Ast.Expression.Binary("==", new Ast.Expression.Literal(BigInteger.ONE), new Ast.Expression.Literal(BigInteger.ONE))),
+                                Arrays.asList(new Ast.Statement.Assignment(new Ast.Expression.Access(Optional.empty(), "num"), new Ast.Expression.Literal(BigInteger.TEN))),
+                                Arrays.asList()
+                        ),
+                        BigInteger.TEN
                 )
         );
     }
@@ -412,6 +431,8 @@ final class InterpreterTests {
     void testFunctionExpression(String test, Ast ast, Object expected) {
         Scope scope = new Scope(null);
         scope.defineFunction("function", 0, args -> Environment.create("function"));
+        scope.defineFunction("print", 1, args -> Environment.create("Hello, World!"));
+        scope.defineFunction("add", 2, args -> Environment.create(BigInteger.valueOf(3)));
         test(ast, expected, scope);
     }
 
@@ -426,6 +447,11 @@ final class InterpreterTests {
                 Arguments.of("Print",
                         new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Literal("Hello, World!"))),
                         Environment.NIL.getValue()
+                ),
+                // add(1, 2)
+                Arguments.of("Add",
+                        new Ast.Expression.Function("add", Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE), new Ast.Expression.Literal(BigInteger.valueOf(2)))),
+                        BigInteger.valueOf(3)
                 )
         );
     }

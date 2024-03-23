@@ -104,7 +104,6 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Expression.Group ast) {
-        System.out.println(ast);
         return visit(ast.getExpression());
     }
 
@@ -371,7 +370,19 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Expression.Function ast) {
-       throw new UnsupportedOperationException(); //TODO
+        List<Ast.Expression> args = ast.getArguments();
+        if (args.isEmpty()) {
+            return Environment.create(ast.getName());
+        }
+
+        Environment.Function func = scope.lookupFunction(ast.getName(), ast.getArguments().size());
+        List< Environment.PlcObject> invokeArgs = new ArrayList<>();
+        for (Ast.Expression exp : args) {
+            invokeArgs.add(visit(exp));
+        }
+        Environment.PlcObject funcValue = func.invoke(invokeArgs);
+
+        return Environment.create(funcValue.getValue());
     }
 
     @Override
