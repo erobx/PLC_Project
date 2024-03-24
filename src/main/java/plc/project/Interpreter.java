@@ -69,9 +69,10 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                 ast.getStatements().forEach(this::visit);
             } catch (Return ex) {
                 return ex.value;
+            } finally {
+                // Return to parent scope
+                scope = childScope.getParent();
             }
-            // Return to parent scope
-            scope = childScope.getParent();
             return Environment.NIL;
         });
         return Environment.NIL;
