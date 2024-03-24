@@ -87,17 +87,34 @@ public final class Parser {
         }
 
         List<Ast.Expression> exprs = new ArrayList<>();
-        Ast.Expression expr = parseExpression();
-        exprs.add(expr);
-        while (!match("]")) {
+        Ast.Expression expr;
+
+        try {
             expr = parseExpression();
             exprs.add(expr);
-            if (peek(",", "]")) {
-                Token lastExp = tokens.get(0);
-                int errIndex = lastExp.getIndex()+1;
-                throw new ParseException("Trailing comma", errIndex);
+        } catch (ParseException ex) {
+            throw new ParseException("Missing Arg", getErrIndex());
+        }
+
+        boolean flag = false;
+        while (peek(",")) {
+            try {
+                if (peek(",", "]")) {
+                    match(",");
+                    flag = true;
+                    throw new ParseException("Trailing comma", getErrIndex());
+                }
+                match(",");
+                expr = parseExpression();
+                exprs.add(expr);
+            } catch (ParseException ex) {
+                if (flag) throw ex;
+                throw new ParseException("Invalid Arg", getErrIndex());
             }
-            match(",");
+        }
+
+        if (!match("]")) {
+            throw new ParseException("Missing ]", getErrIndex());
         }
 
         Ast.Expression.PlcList list = new Ast.Expression.PlcList(exprs);
@@ -135,12 +152,11 @@ public final class Parser {
     public Ast.Function parseFunction() throws ParseException {
         String name = getIdentifier();
         if (!match("(")) {
-            throw new ParseException("Missing left paren", getErrIndex());
+            throw new ParseException("Missing (", getErrIndex());
         }
         List<String> params = new ArrayList<>();
-        List<Ast.Statement> statements = new ArrayList<>();
 
-        while (!match(")")) {
+        while (!match(")") && tokens.has(1)) {
             if (!match(Token.Type.IDENTIFIER)) {
                 throw new ParseException("Invalid argument", getErrIndex());
             }
@@ -157,7 +173,7 @@ public final class Parser {
         if (!match("DO")) {
             throw new ParseException("Missing DO", getErrIndex());
         }
-        statements = parseBlock();
+        List<Ast.Statement> statements = parseBlock();
 
         return new Ast.Function(name, params, statements);
     }
@@ -500,7 +516,7 @@ public final class Parser {
             String literal = tokens.get(-1).getLiteral();
             // Remove first and second '
             for (int i = 0; i < 2; i++) {
-                literal = literal.replace("'", "");
+                literal = literal.replaceFirst("'", "");
             }
             // Check for escapes
             char ch = literal.charAt(0);
@@ -522,6 +538,10 @@ public final class Parser {
                     case 'f':
                         ch = '\f';
                         break;
+                    case '\'':
+                        return new Ast.Expression.Literal("'");
+                    case '\"':
+                        return new Ast.Expression.Literal("\"");
                     default:
                         break;
                 }
@@ -589,7 +609,12 @@ public final class Parser {
         if (match(Token.Type.IDENTIFIER)) {
             return new Ast.Expression.Access(Optional.empty(), tokens.get(-1).getLiteral());
         }
-        throw new ParseException("Invalid expression", tokens.index);
+        if (tokens.tokens.size() == 1) {
+            throw new ParseException("Invalid expression", tokens.get(0).getIndex());
+        } else if (tokens.has(0)) {
+            throw new ParseException("Invalid expression", tokens.get(0).getIndex());
+        }
+        throw new ParseException("Invalid expression", getErrIndex());
     }
 
     private int getErrIndex() {
@@ -603,7 +628,6 @@ public final class Parser {
         literal = literal.replace("\\r", "\r");
         literal = literal.replace("\\t", "\t");
         literal = literal.replace("\\'", "'");
-        literal = literal.replace("\\\\", "\\");
         return literal;
     }
 
