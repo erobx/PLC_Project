@@ -498,8 +498,55 @@ final class InterpreterTests {
         test(ast, expected, new Scope(null));
     }
 
+    @ParameterizedTest
+    @MethodSource
+    void testIfScope(String test, Ast ast, Object expected) {
+    /*
+        FUN main() DO
+            LET x = 1;
+            LET y = 2;
+            log(x);
+            log(y);
+            IF TRUE DO
+                LET x = 3;
+                y = 4;
+                log(x);
+                log(y);
+            END
+            log(x);
+            log(y);
+        END
+     */
+        Scope scope = new Scope(null);
+        StringBuilder builder = new StringBuilder();
+        scope.defineFunction("log", 1, args -> {
+            builder.append(args.get(0).getValue());
+            return args.get(0);
+        });
+        scope.defineFunction("main", 0, args -> {
+            return null;
+        });
+        scope.defineVariable("x", true, Environment.create(BigInteger.ONE));
+        scope.defineVariable("y", true, Environment.create(BigInteger.valueOf(2)));
+        test(ast, expected, scope);
+        Assertions.assertEquals("1", builder.toString());
+    }
+
+    private static Stream<Arguments> testIfScope() {
+        return Stream.of(
+                Arguments.of("1. Log x",
+                    new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Access(Optional.empty(), "x"))),
+                    BigInteger.ONE
+                ),
+                Arguments.of("1. Log y",
+                    new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Access(Optional.empty(), "y"))),
+                    BigInteger.valueOf(2)
+                )
+        );
+    }
+
     @Test
-    void testScope() {
+    void testFunctionScope() {
     /*
     VAR x = 1;
     VAR y = 2;
