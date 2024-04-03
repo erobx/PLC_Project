@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -81,7 +82,31 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Expression.Literal ast) {
-        throw new UnsupportedOperationException();  // TODO
+        Object literal = ast.getLiteral();
+        if (literal instanceof String) {
+            ast.setType(Environment.Type.STRING);
+        } else if (Objects.isNull(literal)) {
+            ast.setType(Environment.Type.NIL);
+        } else if (literal instanceof Boolean) {
+            ast.setType(Environment.Type.BOOLEAN);
+        } else if (literal instanceof Character) {
+            ast.setType(Environment.Type.CHARACTER);
+        } else if (literal instanceof BigInteger temp) {
+            if (temp.bitLength() > 32) {
+                throw new RuntimeException("Value out of range of 32 bits");
+            }
+            ast.setType(Environment.Type.INTEGER);
+        } else if (literal instanceof BigDecimal temp) {
+            if (temp.doubleValue() == Double.POSITIVE_INFINITY || temp.doubleValue() == Double.NEGATIVE_INFINITY) {
+                throw new RuntimeException("Value of of range of 64 bits");
+            }
+            ast.setType(Environment.Type.DECIMAL);
+        }
+        return null;
+    }
+
+    enum Check {
+        String, Integer, Char, Boolean, Void
     }
 
     @Override
