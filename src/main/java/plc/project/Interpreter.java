@@ -52,12 +52,8 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
             // Define new variables for childScope, checking if they already exist before
             for (String p : ast.getParameters()) {
-                try {
-                    Environment.Variable v = childScope.lookupVariable(p);
-                    childScope.defineVariable(v.getName(), v.getMutable(), v.getValue());
-                } catch (RuntimeException ex) {
-                    System.out.println(ex);
-                }
+                Environment.Variable v = childScope.lookupVariable(p);
+                childScope.defineVariable(v.getName(), v.getMutable(), v.getValue());
             }
 
             // Evaluate function statements => return value in Return exception if thrown or NIL if not
@@ -436,7 +432,6 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
             }
 
             Object access = list.get(offset);
-//            System.out.println(access);
 
             return Environment.create(access);
         }
