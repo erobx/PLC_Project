@@ -30,14 +30,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         // Evaluate globals then functions
         ast.getGlobals().forEach(this::visit);
         ast.getFunctions().forEach(this::visit);
-        // Check if main exists
-        try {
-            // Should return the value of the main function
-            return scope.lookupFunction("main", 0).invoke(Arrays.asList());
-        } catch (RuntimeException ex) {
-            System.out.println("Missing main");
-        }
-        return null;
+        return scope.lookupFunction("main", 0).invoke(Arrays.asList());
     }
 
     @Override
@@ -50,6 +43,9 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Function ast) {
+        if (ast.getName().equals("main") && !ast.getParameters().isEmpty()) {
+            throw new RuntimeException("Invalid main arity");
+        }
         scope.defineFunction(ast.getName(), ast.getParameters().size(), args -> {
             // Change scope to scope of function
             Scope childScope = new Scope(scope);

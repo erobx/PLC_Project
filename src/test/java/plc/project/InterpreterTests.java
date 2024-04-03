@@ -608,6 +608,20 @@ final class InterpreterTests {
                     Arrays.asList(
                             new Ast.Statement.While(new Ast.Expression.Literal("false"), Arrays.asList())),
                     new RuntimeException("Expected type java.lang.Boolean, received java.lang.String.")
+                ),
+                Arguments.of("Missing main",
+                        new Scope(null),
+                        Arrays.asList(
+                                new Ast.Source(Arrays.asList(), Arrays.asList())
+                        ),
+                        new RuntimeException("The function main/0 is not defined in this scope.")
+                ),
+                Arguments.of("Invalid main arity",
+                        new Scope(null),
+                        Arrays.asList(
+                                new Ast.Function("main", Arrays.asList("y"), Arrays.asList())
+                        ),
+                        new RuntimeException("Invalid main arity")
                 )
         );
     }
