@@ -70,6 +70,37 @@ final class ParserModifiedTests {
                                         new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt"))
                                 )))
                         )
+                ),
+                Arguments.of("Argument Types",
+                        Arrays.asList(
+                                //FUN name(x: Integer, y: Boolean, z: Decimal) DO stmt; END
+                                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "(", 5),
+                                new Token(Token.Type.IDENTIFIER, "x", 6),
+                                new Token(Token.Type.OPERATOR, ":", 7),
+                                new Token(Token.Type.IDENTIFIER, "Integer", 9),
+                                new Token(Token.Type.OPERATOR, ",", 16),
+                                new Token(Token.Type.IDENTIFIER, "y", 18),
+                                new Token(Token.Type.OPERATOR, ":", 19),
+                                new Token(Token.Type.IDENTIFIER, "Boolean", 21),
+                                new Token(Token.Type.OPERATOR, ",", 28),
+                                new Token(Token.Type.IDENTIFIER, "z", 30),
+                                new Token(Token.Type.OPERATOR, ":", 31),
+                                new Token(Token.Type.IDENTIFIER, "Decimal", 33),
+                                new Token(Token.Type.OPERATOR, ")", 40),
+                                new Token(Token.Type.IDENTIFIER, "DO", 42),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 45),
+                                new Token(Token.Type.OPERATOR, ";", 49),
+                                new Token(Token.Type.IDENTIFIER, "END", 51)
+                        ),
+                        new Ast.Source(Arrays.asList(), Arrays.asList(
+                                new Ast.Function("name", Arrays.asList("x", "y", "z"), Arrays.asList("Integer", "Boolean", "Decimal"),
+                                    Optional.empty(), Arrays.asList(
+                                            new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt"))
+                                ))
+                            )
+                        )
                 )
         );
     }
