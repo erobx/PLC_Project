@@ -105,28 +105,119 @@ public final class Analyzer implements Ast.Visitor<Void> {
         return null;
     }
 
-    enum Check {
-        String, Integer, Char, Boolean, Void
-    }
-
     @Override
     public Void visit(Ast.Expression.Group ast) {
-        throw new UnsupportedOperationException();  // TODO
+        if (!(ast.getExpression() instanceof Ast.Expression.Binary)) {
+            throw new RuntimeException("Not binary expression.");
+        }
+        ast.setType(ast.getExpression().getType());
+        return null;
     }
 
     @Override
     public Void visit(Ast.Expression.Binary ast) {
-        throw new UnsupportedOperationException();  // TODO
+        visit(ast.getLeft()); visit(ast.getRight());
+        Environment.Type leftType = ast.getLeft().getType();
+        Environment.Type rightType = ast.getRight().getType();
+
+        switch (ast.getOperator()) {
+            case "&&", "||":
+                if (leftType.equals(Environment.Type.BOOLEAN)) {
+                    if (!rightType.equals(Environment.Type.BOOLEAN)) {
+                        throw new RuntimeException("Expected boolean");
+                    }
+                    ast.setType(Environment.Type.BOOLEAN);
+                } else {
+                    throw new RuntimeException("Expected boolean");
+                }
+                break;
+            case "<", ">", "==", "!=":
+                RuntimeException ex = new RuntimeException("Unexpected type");
+                if (leftType.equals(Environment.Type.INTEGER)) {
+                    if (!rightType.equals(Environment.Type.INTEGER)) {
+                        throw ex;
+                    }
+                } else if (leftType.equals(Environment.Type.DECIMAL)) {
+                    if (!rightType.equals(Environment.Type.DECIMAL)) {
+                        throw ex;
+                    }
+                } else if (leftType.equals(Environment.Type.CHARACTER)) {
+                    if (!rightType.equals(Environment.Type.CHARACTER)) {
+                        throw ex;
+                    }
+                } else if (leftType.equals(Environment.Type.STRING)) {
+                    if (!rightType.equals(Environment.Type.STRING)) {
+                        throw ex;
+                    }
+                } else {
+                    throw ex;
+                }
+                ast.setType(Environment.Type.BOOLEAN);
+                break;
+            case "+":
+                if (leftType.equals(Environment.Type.STRING) || rightType.equals(Environment.Type.STRING)) {
+                    ast.setType(Environment.Type.STRING);
+                } else if (leftType.equals(Environment.Type.INTEGER)) {
+                    if (!rightType.equals(Environment.Type.INTEGER)) {
+                        throw new RuntimeException("Expected integer");
+                    }
+                    ast.setType(Environment.Type.INTEGER);
+                } else if (leftType.equals(Environment.Type.DECIMAL)) {
+                    if (!rightType.equals(Environment.Type.DECIMAL)) {
+                        throw new RuntimeException("Expected decimal");
+                    }
+                    ast.setType(Environment.Type.DECIMAL);
+                } else {
+                    throw new RuntimeException("Unexpected type");
+                }
+                break;
+            case "-", "*", "/":
+                if (leftType.equals(Environment.Type.INTEGER)) {
+                    if (!rightType.equals(Environment.Type.INTEGER)) {
+                        throw new RuntimeException("Expected integer");
+                    }
+                    ast.setType(Environment.Type.INTEGER);
+                } else if (leftType.equals(Environment.Type.DECIMAL)) {
+                    if (!rightType.equals(Environment.Type.DECIMAL)) {
+                        throw new RuntimeException("Expected decimal");
+                    }
+                    ast.setType(Environment.Type.DECIMAL);
+                } else {
+                    throw new RuntimeException("Unexpected type");
+                }
+                break;
+            case "^":
+                if (!leftType.equals(Environment.Type.INTEGER)) {
+                    throw new RuntimeException("Expected integer");
+                }
+                if (!rightType.equals(Environment.Type.INTEGER)) {
+                    throw new RuntimeException("Expected integer");
+                }
+                ast.setType(Environment.Type.INTEGER);
+                break;
+        }
+        return null;
     }
 
     @Override
     public Void visit(Ast.Expression.Access ast) {
-        throw new UnsupportedOperationException();  // TODO
+        if (ast.getOffset().isPresent()) {
+            Ast.Expression offset = ast.getOffset().get();
+            visit(offset);
+            if (offset.getType() == null) {
+                throw new RuntimeException("Offset not an integer.");
+            }
+        }
+        Environment.Variable var = scope.lookupVariable(ast.getName());
+        ast.setVariable(var);
+        return null;
     }
 
     @Override
     public Void visit(Ast.Expression.Function ast) {
-        throw new UnsupportedOperationException();  // TODO
+        Environment.Function func = scope.lookupFunction(ast.getName(), ast.getArguments().size());
+        ast.setFunction(func);
+        return null;
     }
 
     @Override
