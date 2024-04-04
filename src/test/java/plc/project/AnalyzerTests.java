@@ -467,6 +467,28 @@ public final class AnalyzerTests {
                                 new Ast.Expression.Literal(BigDecimal.ONE)
                         ),
                         null
+                ),
+                Arguments.of("Less Than",
+                        // 1 < 2
+                        new Ast.Expression.Binary("<",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigInteger.valueOf(2))
+                        ),
+                        init(new Ast.Expression.Binary("<",
+                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER)),
+                                init(new Ast.Expression.Literal(BigInteger.valueOf(2)), ast -> ast.setType(Environment.Type.INTEGER))
+                        ), ast -> ast.setType(Environment.Type.BOOLEAN))
+                ),
+                Arguments.of("Exponent",
+                        // 2 ^ 10
+                        new Ast.Expression.Binary("^",
+                                new Ast.Expression.Literal(BigInteger.valueOf(2)),
+                                new Ast.Expression.Literal(BigInteger.TEN)
+                        ),
+                        init(new Ast.Expression.Binary("^",
+                                init(new Ast.Expression.Literal(BigInteger.valueOf(2)), ast -> ast.setType(Environment.Type.INTEGER)),
+                                init(new Ast.Expression.Literal(BigInteger.TEN), ast -> ast.setType(Environment.Type.INTEGER))
+                        ), ast -> ast.setType(Environment.Type.INTEGER))
                 )
         );
     }
