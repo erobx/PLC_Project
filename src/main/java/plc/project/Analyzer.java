@@ -110,7 +110,8 @@ public final class Analyzer implements Ast.Visitor<Void> {
         if (!(ast.getExpression() instanceof Ast.Expression.Binary)) {
             throw new RuntimeException("Not binary expression.");
         }
-        ast.setType(ast.getExpression().getType());
+        visit(ast.getExpression());
+        ast.setType(ast.getType());
         return null;
     }
 

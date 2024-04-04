@@ -413,6 +413,35 @@ public final class AnalyzerTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
+    public void testGroupExpression(String test, Ast.Expression.Group ast, Ast.Expression.Group expected) {
+        test(ast, expected, new Scope(null));
+    }
+
+    private static Stream<Arguments> testGroupExpression() {
+        return Stream.of(
+                Arguments.of("Invalid Group",
+                        // (1)
+                        new Ast.Expression.Group(new Ast.Expression.Literal(BigInteger.ONE)),
+                        null
+                ),
+                Arguments.of("Binary Integer",
+                        // (1 + 10)
+                        new Ast.Expression.Group(new Ast.Expression.Binary("+",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigInteger.TEN)
+                        )),
+                        init(new Ast.Expression.Group(
+                                init(new Ast.Expression.Binary("+",
+                                    init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER)),
+                                    init(new Ast.Expression.Literal(BigInteger.TEN), ast -> ast.setType(Environment.Type.INTEGER))
+                                ), ast -> ast.setType(Environment.Type.INTEGER))
+                        ), ast -> ast.setType(Environment.Type.INTEGER))
+                )
+        );
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
     public void testBinaryExpression(String test, Ast.Expression.Binary ast, Ast.Expression.Binary expected) {
         test(ast, expected, new Scope(null));
     }
