@@ -42,17 +42,45 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.Expression ast) {
-        throw new UnsupportedOperationException();  // TODO
+        if (!(ast.getExpression() instanceof Ast.Expression.Function)) {
+            throw new RuntimeException("Expression is not of class Ast.Expression.Function");
+        }
+        visit(ast.getExpression());
+        return null;
     }
 
     @Override
     public Void visit(Ast.Statement.Declaration ast) {
-        throw new UnsupportedOperationException();  // TODO
+        Environment.Variable var;
+        Environment.PlcObject value = Environment.NIL;
+        if (ast.getValue().isPresent()) {
+            visit(ast.getValue().get());
+        }
+        if (ast.getTypeName().isPresent()) {
+            String typeName = ast.getTypeName().get();
+            var = new Environment.Variable(ast.getName(), ast.getName(), Environment.getType(typeName), true, value);
+            scope.defineVariable(var.getName(), var.getJvmName(), var.getType(), var.getMutable(), var.getValue());
+        } else {
+            if (ast.getValue().isPresent()) {
+                var = new Environment.Variable(ast.getName(), ast.getName(), ast.getValue().get().getType(), true, value);
+                scope.defineVariable(var.getName(), var.getJvmName(), var.getType(), var.getMutable(), var.getValue());
+            } else {
+                var = new Environment.Variable(ast.getName(), true, value);
+                scope.defineVariable(var.getName(), var.getMutable(), var.getValue());
+            }
+        }
+        ast.setVariable(var);
+        return null;
     }
 
     @Override
     public Void visit(Ast.Statement.Assignment ast) {
-        throw new UnsupportedOperationException();  // TODO
+        if (!(ast.getReceiver() instanceof Ast.Expression.Access)) {
+            throw new RuntimeException("Receiver is not of class Ast.Expression.Access");
+        }
+        visit(ast.getReceiver()); visit(ast.getValue());
+        requireAssignable(ast.getReceiver().getType(), ast.getValue().getType());
+        return null;
     }
 
     @Override

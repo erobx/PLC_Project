@@ -545,6 +545,7 @@ public final class AnalyzerTests {
     public void testFunctionExpression(String test, Ast.Expression.Function ast, Ast.Expression.Function expected) {
         test(ast, expected, init(new Scope(null), scope -> {
             scope.defineFunction("function", "function", Arrays.asList(), Environment.Type.INTEGER, args -> Environment.NIL);
+            scope.defineFunction("function", "function", Arrays.asList(Environment.Type.INTEGER), Environment.Type.INTEGER, args -> Environment.NIL);
         }));
     }
 
@@ -554,6 +555,15 @@ public final class AnalyzerTests {
                         // function()
                         new Ast.Expression.Function("function", Arrays.asList()),
                         init(new Ast.Expression.Function("function", Arrays.asList()), ast -> ast.setFunction(new Environment.Function("function", "function", Arrays.asList(), Environment.Type.INTEGER, args -> Environment.NIL)))
+                ),
+                Arguments.of("Function Valid arg",
+                        // function(1)
+                        new Ast.Expression.Function("function", Arrays.asList(
+                                new Ast.Expression.Literal(BigInteger.ONE))),
+                        init(new Ast.Expression.Function("function", Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE))),
+                                ast -> ast.setFunction(new Environment.Function("function", "function",
+                                        Arrays.asList(Environment.Type.INTEGER), Environment.Type.INTEGER, args -> Environment.NIL))
+                        )
                 )
         );
     }
