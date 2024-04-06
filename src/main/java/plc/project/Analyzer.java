@@ -2,8 +2,10 @@ package plc.project;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.List;
 
 /**
  * See the specification for information about what the different visit
@@ -97,7 +99,20 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.If ast) {
-        throw new UnsupportedOperationException();  // TODO
+        visit(ast.getCondition());
+        if (!ast.getCondition().getType().equals(Environment.Type.BOOLEAN)) {
+            throw new RuntimeException("Expected boolean");
+        }
+        if (ast.getThenStatements().isEmpty()) {
+            throw new RuntimeException("Missing statements");
+        }
+        try {
+            scope = new Scope(scope);
+            ast.getThenStatements().forEach(this::visit);
+        } finally {
+            scope = scope.getParent();
+        }
+        return null;
     }
 
     @Override
@@ -117,7 +132,7 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.Return ast) {
-        throw new UnsupportedOperationException();  // TODO
+        return null;
     }
 
     @Override
@@ -257,6 +272,16 @@ public final class Analyzer implements Ast.Visitor<Void> {
     @Override
     public Void visit(Ast.Expression.Function ast) {
         Environment.Function func = scope.lookupFunction(ast.getName(), ast.getArguments().size());
+        ast.getArguments().forEach(this::visit);
+
+        List<Environment.Type> types = new ArrayList<>();
+        ast.getArguments().forEach(exp -> {
+            types.add(exp.getType());
+        });
+        for (int i = 0; i < types.size(); i++) {
+            requireAssignable(func.getParameterTypes().get(i), types.get(i));
+        }
+
         ast.setFunction(func);
         return null;
     }

@@ -252,7 +252,9 @@ public final class AnalyzerTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     public void testIfStatement(String test, Ast.Statement.If ast, Ast.Statement.If expected) {
-        test(ast, expected, new Scope(null));
+        test(ast, expected, init(new Scope(null), scope -> {
+           scope.defineFunction("print", "System.out.println", Arrays.asList(Environment.Type.INTEGER), Environment.Type.NIL, args -> Environment.NIL);
+        }));
     }
 
     private static Stream<Arguments> testIfStatement() {
@@ -312,6 +314,32 @@ public final class AnalyzerTests {
                                 Arrays.asList()
                         ),
                         null
+                ),
+                Arguments.of("Binary Condition",
+                        // IF (0 < 1) DO print(1); END
+                        new Ast.Statement.If(
+                                new Ast.Expression.Binary("<",
+                                        new Ast.Expression.Literal(BigInteger.ZERO),
+                                        new Ast.Expression.Literal(BigInteger.ONE)),
+                                Arrays.asList(new Ast.Statement.Expression(
+                                        new Ast.Expression.Function("print", Arrays.asList(
+                                                new Ast.Expression.Literal(BigInteger.ONE)
+                                        ))
+                                )),
+                                Arrays.asList()
+                        ),
+                        new Ast.Statement.If(
+                                init(new Ast.Expression.Binary("<",
+                                        init(new Ast.Expression.Literal(BigInteger.ZERO), ast -> ast.setType(Environment.Type.INTEGER)),
+                                        init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))
+                                ), ast -> ast.setType(Environment.Type.BOOLEAN)),
+                                Arrays.asList(new Ast.Statement.Expression(
+                                        init(new Ast.Expression.Function("print", Arrays.asList(
+                                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))
+                                        )), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL))))
+                                ),
+                                Arrays.asList()
+                        )
                 )
         );
     }
@@ -577,6 +605,7 @@ public final class AnalyzerTests {
         test(ast, expected, init(new Scope(null), scope -> {
             scope.defineFunction("function", "function", Arrays.asList(), Environment.Type.INTEGER, args -> Environment.NIL);
             scope.defineFunction("function", "function", Arrays.asList(Environment.Type.INTEGER), Environment.Type.INTEGER, args -> Environment.NIL);
+            scope.defineFunction("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL);
         }));
     }
 
@@ -587,13 +616,40 @@ public final class AnalyzerTests {
                         new Ast.Expression.Function("function", Arrays.asList()),
                         init(new Ast.Expression.Function("function", Arrays.asList()), ast -> ast.setFunction(new Environment.Function("function", "function", Arrays.asList(), Environment.Type.INTEGER, args -> Environment.NIL)))
                 ),
-                Arguments.of("Function Valid arg",
+                Arguments.of("Function Valid Arg",
                         // function(1)
                         new Ast.Expression.Function("function", Arrays.asList(
                                 new Ast.Expression.Literal(BigInteger.ONE))),
-                        init(new Ast.Expression.Function("function", Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE))),
+                        init(new Ast.Expression.Function("function", Arrays.asList(
+                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER)))),
                                 ast -> ast.setFunction(new Environment.Function("function", "function",
                                         Arrays.asList(Environment.Type.INTEGER), Environment.Type.INTEGER, args -> Environment.NIL))
+                        )
+                ),
+                Arguments.of("Invalid Arg",
+                        // function(1.0)
+                        new Ast.Expression.Function("function", Arrays.asList(
+                                new Ast.Expression.Literal(BigDecimal.ONE))),
+                        null
+                ),
+                Arguments.of("Print Integer",
+                        // print(1)
+                        new Ast.Expression.Function("print", Arrays.asList(
+                                new Ast.Expression.Literal(BigInteger.ONE))),
+                        init(new Ast.Expression.Function("print", Arrays.asList(
+                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER)))),
+                                ast -> ast.setFunction(new Environment.Function("print", "System.out.println",
+                                        Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL))
+                        )
+                ),
+                Arguments.of("Print String",
+                        // print("hello")
+                        new Ast.Expression.Function("print", Arrays.asList(
+                                new Ast.Expression.Literal("hello"))),
+                        init(new Ast.Expression.Function("print", Arrays.asList(
+                                        init(new Ast.Expression.Literal("hello"), ast -> ast.setType(Environment.Type.STRING)))),
+                                ast -> ast.setFunction(new Environment.Function("print", "System.out.println",
+                                        Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL))
                         )
                 )
         );
