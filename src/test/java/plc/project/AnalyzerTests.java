@@ -182,6 +182,37 @@ public final class AnalyzerTests {
                         // LET name: Unknown;
                         new Ast.Statement.Declaration("name", Optional.of("Unknown"), Optional.empty()),
                         null
+                ),
+                Arguments.of("Not Assignable",
+                        // LET name: String = 1;
+                        new Ast.Statement.Declaration("name", Optional.of("String"), Optional.of(new Ast.Expression.Literal(BigInteger.ONE))),
+                        null
+                ),
+                Arguments.of("Type and Value",
+                        // LET x: Integer = 1;
+                        new Ast.Statement.Declaration("x", Optional.of("Integer"), Optional.of(new Ast.Expression.Literal(BigInteger.ONE))),
+                        init(new Ast.Statement.Declaration("x", Optional.of("Integer"), Optional.of(
+                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))
+                        )), ast -> ast.setVariable(new Environment.Variable("x", "x", Environment.Type.INTEGER, true, Environment.NIL)))
+                ),
+                Arguments.of("Any",
+                        // LET x: ANY = "hello";
+                        new Ast.Statement.Declaration("x", Optional.of("Any"), Optional.of(new Ast.Expression.Literal("hello"))),
+                        init(new Ast.Statement.Declaration("x", Optional.of("Any"), Optional.of(
+                                init(new Ast.Expression.Literal("hello"), ast -> ast.setType(Environment.Type.STRING))
+                        )), ast -> ast.setVariable(new Environment.Variable("x", "x", Environment.Type.ANY, true, Environment.NIL)))
+                ),
+                Arguments.of("Comparable",
+                        // LET x: Comparable = "hello";
+                        new Ast.Statement.Declaration("x", Optional.of("Comparable"), Optional.of(new Ast.Expression.Literal("hello"))),
+                        init(new Ast.Statement.Declaration("x", Optional.of("Comparable"), Optional.of(
+                                init(new Ast.Expression.Literal("hello"), ast -> ast.setType(Environment.Type.STRING))
+                        )), ast -> ast.setVariable(new Environment.Variable("x", "x", Environment.Type.COMPARABLE, true, Environment.NIL)))
+                ),
+                Arguments.of("Not Comparable",
+                        // LET x: Comparable = TRUE;
+                        new Ast.Statement.Declaration("x", Optional.of("Comparable"), Optional.of(new Ast.Expression.Literal(true))),
+                        null
                 )
         );
     }

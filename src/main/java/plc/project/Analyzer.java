@@ -3,9 +3,7 @@ package plc.project;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * See the specification for information about what the different visit
@@ -53,24 +51,38 @@ public final class Analyzer implements Ast.Visitor<Void> {
     public Void visit(Ast.Statement.Declaration ast) {
         Environment.Variable var;
         Environment.PlcObject value = Environment.NIL;
-        if (ast.getValue().isPresent()) {
+        RuntimeException nameEx = new RuntimeException("Variable name and jvmName do not match");
+        // LET x: Integer = 1;
+        if (ast.getTypeName().isPresent() && ast.getValue().isPresent()) {
             visit(ast.getValue().get());
-        }
-        if (ast.getTypeName().isPresent()) {
+            String typeName = ast.getTypeName().get();
+
+            var = new Environment.Variable(ast.getName(), ast.getName(), Environment.getType(typeName), true, value);
+            if (checkNames(var)) throw nameEx;
+            requireAssignable(var.getType(), ast.getValue().get().getType());
+
+            scope.defineVariable(var.getName(), var.getJvmName(), var.getType(), var.getMutable(), var.getValue());
+        } else if (ast.getTypeName().isPresent()) {
             String typeName = ast.getTypeName().get();
             var = new Environment.Variable(ast.getName(), ast.getName(), Environment.getType(typeName), true, value);
+
+            if (checkNames(var)) throw nameEx;
+            scope.defineVariable(var.getName(), var.getJvmName(), var.getType(), var.getMutable(), var.getValue());
+        } else if (ast.getValue().isPresent()) {
+            visit(ast.getValue().get());
+            var = new Environment.Variable(ast.getName(), ast.getName(), ast.getValue().get().getType(), true, value);
+
+            if (checkNames(var)) throw nameEx;
             scope.defineVariable(var.getName(), var.getJvmName(), var.getType(), var.getMutable(), var.getValue());
         } else {
-            if (ast.getValue().isPresent()) {
-                var = new Environment.Variable(ast.getName(), ast.getName(), ast.getValue().get().getType(), true, value);
-                scope.defineVariable(var.getName(), var.getJvmName(), var.getType(), var.getMutable(), var.getValue());
-            } else {
-                var = new Environment.Variable(ast.getName(), true, value);
-                scope.defineVariable(var.getName(), var.getMutable(), var.getValue());
-            }
+                throw new RuntimeException("Type not specified");
         }
         ast.setVariable(var);
         return null;
+    }
+
+    public boolean checkNames(Environment.Variable var) {
+        return (!var.getName().equals(var.getJvmName()));
     }
 
     @Override
