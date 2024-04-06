@@ -574,9 +574,8 @@ final class InterpreterTests {
         test(ast, expected, new Scope(null));
     }
 
-    @ParameterizedTest
-    @MethodSource
-    void testIfScope(String test, Ast ast, Object expected) {
+    @Test
+    void testIfScope() {
     /*
         FUN main() DO
             LET x = 1;
@@ -599,26 +598,31 @@ final class InterpreterTests {
             builder.append(args.get(0).getValue());
             return args.get(0);
         });
-        scope.defineFunction("main", 0, args -> {
-            return null;
-        });
-        scope.defineVariable("x", true, Environment.create(BigInteger.ONE));
-        scope.defineVariable("y", true, Environment.create(BigInteger.valueOf(2)));
-        test(ast, expected, scope);
-//        Assertions.assertEquals("1", builder.toString());
-    }
 
-    private static Stream<Arguments> testIfScope() {
-        return Stream.of(
-                Arguments.of("1. Log x",
-                    new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Access(Optional.empty(), "x"))),
-                    BigInteger.ONE
-                ),
-                Arguments.of("1. Log y",
-                    new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Access(Optional.empty(), "y"))),
-                    BigInteger.valueOf(2)
-                )
+        List<Ast.Statement> statements = Arrays.asList(
+                new Ast.Statement.Declaration("x", Optional.of(new Ast.Expression.Literal(BigInteger.ONE))),
+                new Ast.Statement.Declaration("y", Optional.of(new Ast.Expression.Literal(BigInteger.valueOf(2)))),
+                new Ast.Statement.Expression(new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Access(Optional.empty(), "x")))),
+                new Ast.Statement.Expression(new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Access(Optional.empty(), "y")))),
+                new Ast.Statement.If(new Ast.Expression.Literal(true), Arrays.asList(
+                        new Ast.Statement.Declaration("x", Optional.of(new Ast.Expression.Literal(BigInteger.valueOf(3)))),
+                        new Ast.Statement.Assignment(new Ast.Expression.Access(Optional.empty(), "y"), new Ast.Expression.Literal(BigInteger.valueOf(4))),
+                        new Ast.Statement.Expression(new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Access(Optional.empty(), "x")))),
+                        new Ast.Statement.Expression(new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Access(Optional.empty(), "y"))))
+                ), Arrays.asList()),
+                new Ast.Statement.Expression(new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Access(Optional.empty(), "x")))),
+                new Ast.Statement.Expression(new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Access(Optional.empty(), "y"))))
         );
+
+        List<Ast.Function> functions = Arrays.asList(
+                new Ast.Function("main", Arrays.asList(), statements)
+        );
+
+        Ast.Source src = new Ast.Source(Arrays.asList(), functions);
+        Object expected = "123414";
+
+        test(src, Environment.NIL.getValue(), scope);
+        Assertions.assertEquals(expected, builder.toString());
     }
 
     @Test
