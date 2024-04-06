@@ -1,5 +1,6 @@
 package plc.project;
 
+import javax.swing.text.html.Option;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
@@ -81,6 +82,13 @@ public final class Parser {
      */
     public Ast.Global parseList() throws ParseException {
         String name = getIdentifier();
+
+        // Type
+        if (!match(":")) {
+            throw new ParseException("Missing :", getErrIndex());
+        }
+        String type = getIdentifier();
+
         checkNotEquals();
         if (!match("[")) {
             throw new ParseException("Missing [", getErrIndex());
@@ -118,7 +126,7 @@ public final class Parser {
         }
 
         Ast.Expression.PlcList list = new Ast.Expression.PlcList(exprs);
-        return new Ast.Global(name, true, Optional.of(list));
+        return new Ast.Global(name, type, true, Optional.of(list));
     }
 
     /**
@@ -127,11 +135,16 @@ public final class Parser {
      */
     public Ast.Global parseMutable() throws ParseException {
         String name = getIdentifier();
+        // Type
+        if (!match(":")) {
+            throw new ParseException("Missing :", getErrIndex());
+        }
+        String type = getIdentifier();
         if (match("=")) {
-            return new Ast.Global(name, true, Optional.of(parseExpression()));
+            return new Ast.Global(name, type, true, Optional.of(parseExpression()));
         }
 
-        return new Ast.Global(name, true, Optional.empty());
+        return new Ast.Global(name, type, true, Optional.empty());
     }
 
     /**
@@ -140,9 +153,14 @@ public final class Parser {
      */
     public Ast.Global parseImmutable() throws ParseException {
         String name = getIdentifier();
+        // Type
+        if (!match(":")) {
+            throw new ParseException("Missing :", getErrIndex());
+        }
+        String type = getIdentifier();
         checkNotEquals();
 
-        return new Ast.Global(name, false, Optional.of(parseExpression()));
+        return new Ast.Global(name, type,false, Optional.of(parseExpression()));
     }
 
     /**
@@ -155,6 +173,7 @@ public final class Parser {
             throw new ParseException("Missing (", getErrIndex());
         }
         List<String> params = new ArrayList<>();
+        List<String> paramTypeNames = new ArrayList<>();
 
         while (!match(")") && tokens.has(1)) {
             if (!match(Token.Type.IDENTIFIER)) {
@@ -162,6 +181,14 @@ public final class Parser {
             }
             String arg = tokens.get(-1).getLiteral();
             params.add(arg);
+
+            // Type
+            if (!match(":")) {
+                throw new ParseException("Missing :", getErrIndex());
+            }
+            String type = getIdentifier();
+            paramTypeNames.add(type);
+
             if (peek(",", ")")) {
                 Token lastExp = tokens.get(0);
                 int errIndex = lastExp.getIndex()+1;
@@ -170,12 +197,25 @@ public final class Parser {
             match(",");
         }
 
+        // (':' identifier)?
+        Optional<String> returnTypeName = Optional.empty();
+        boolean flag = false;
+        if (match(":")) {
+            flag = true;
+            String type = getIdentifier();
+            returnTypeName = Optional.of(type);
+        }
+
         if (!match("DO")) {
             throw new ParseException("Missing DO", getErrIndex());
         }
         List<Ast.Statement> statements = parseBlock();
 
-        return new Ast.Function(name, params, statements);
+        if (!paramTypeNames.isEmpty() && !flag) {
+            return new Ast.Function(name, params, paramTypeNames, returnTypeName, statements);
+        }
+
+        return flag ? new Ast.Function(name, params, paramTypeNames, returnTypeName, statements) : new Ast.Function(name, params, statements);
     }
 
     /**
@@ -250,12 +290,19 @@ public final class Parser {
             throw new ParseException("Missing identifier", getErrIndex());
         }
         String name = tokens.get(-1).getLiteral();
-        Ast.Statement.Declaration dec = new Ast.Statement.Declaration(name, Optional.empty());
+        Ast.Statement.Declaration dec = new Ast.Statement.Declaration(name, Optional.empty(), Optional.empty());
+
+        // Type
+        if (match(":")) {
+            String type = getIdentifier();
+            dec = new Ast.Statement.Declaration(name, Optional.of(type), Optional.empty());
+        }
+
         if (match("=")) {
             Ast.Expression right = parseExpression();
-            dec =  new Ast.Statement.Declaration(name, Optional.of(right));
+            dec =  new Ast.Statement.Declaration(name, Optional.empty(), Optional.of(right));
         }
-        // Matched ID and not = check for ;
+
         if (!match(";")) {
             throw new ParseException("Missing semicolon", getErrIndex());
         }

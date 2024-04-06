@@ -79,9 +79,9 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     @Override
     public Environment.PlcObject visit(Ast.Statement.Declaration ast) {
         // Source: Peter Dobbins Lecture 25 25:05
-        if ( ast.getValue().isPresent()) {
+        if (ast.getValue().isPresent()) {
             scope.defineVariable(ast.getName(), true, visit(ast.getValue().get()));
-        }else {
+        } else {
             scope.defineVariable(ast.getName(), true, Environment.NIL);
         }
         return Environment.NIL;
@@ -118,12 +118,15 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     @Override
     public Environment.PlcObject visit(Ast.Statement.If ast) {
         Boolean condition = requireType(Boolean.class, visit(ast.getCondition()));
-        if (condition) {
-            Ast.Statement thenStatement = ast.getThenStatements().getFirst();
-            visit(thenStatement);
-        } else {
-            Ast.Statement elseStatement = ast.getElseStatements().getFirst();
-            visit(elseStatement);
+        try {
+            scope = new Scope(scope);
+            if (condition) {
+                ast.getThenStatements().forEach(this::visit);
+            } else {
+                ast.getElseStatements().forEach(this::visit);
+            }
+        } finally {
+            scope = scope.getParent();
         }
         return Environment.NIL;
     }
