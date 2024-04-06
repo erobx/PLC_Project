@@ -222,6 +222,7 @@ public final class AnalyzerTests {
     public void testAssignmentStatement(String test, Ast.Statement.Assignment ast, Ast.Statement.Assignment expected) {
         test(ast, expected, init(new Scope(null), scope -> {
             scope.defineVariable("variable", "variable", Environment.Type.INTEGER, true, Environment.NIL);
+            scope.defineVariable("test", "test", Environment.Type.COMPARABLE, true, Environment.NIL);
         }));
     }
 
@@ -245,6 +246,25 @@ public final class AnalyzerTests {
                                 new Ast.Expression.Literal("string")
                         ),
                         null
+                ),
+                Arguments.of("Not Comparable",
+                        // test = FALSE;
+                        new Ast.Statement.Assignment(
+                                new Ast.Expression.Access(Optional.empty(), "test"),
+                                new Ast.Expression.Literal(false)
+                        ),
+                        null
+                ),
+                Arguments.of("Comparable",
+                        // test = 6.9
+                        new Ast.Statement.Assignment(
+                                new Ast.Expression.Access(Optional.empty(), "test"),
+                                new Ast.Expression.Literal(BigDecimal.valueOf(6.9))
+                        ),
+                        new Ast.Statement.Assignment(
+                                init(new Ast.Expression.Access(Optional.empty(), "test"), ast -> ast.setVariable(new Environment.Variable("test", "test", Environment.Type.COMPARABLE, true, Environment.NIL))),
+                                init(new Ast.Expression.Literal(BigDecimal.valueOf(6.9)), ast -> ast.setType(Environment.Type.DECIMAL))
+                        )
                 )
         );
     }
@@ -440,6 +460,21 @@ public final class AnalyzerTests {
                                 )
                         ),
                         null
+                ),
+                Arguments.of("Default Case Value",
+                        // SWITCH number DEFAULT 1 print("no"); END
+                        new Ast.Statement.Switch(
+                                new Ast.Expression.Access(Optional.empty(), "number"),
+                                Arrays.asList(
+                                        new Ast.Statement.Case(
+                                                Optional.of(new Ast.Expression.Literal(BigInteger.ONE)),
+                                                Arrays.asList(
+                                                        new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Literal("no"))))
+                                                )
+                                        )
+                                )
+                        ),
+                        null
                 )
         );
     }
@@ -465,6 +500,14 @@ public final class AnalyzerTests {
                 Arguments.of("Integer Invalid",
                         // 9223372036854775807
                         new Ast.Expression.Literal(BigInteger.valueOf(Long.MAX_VALUE)),
+                        null
+                ),
+                Arguments.of("Decimal Valid",
+                        new Ast.Expression.Literal(BigDecimal.valueOf(Double.MAX_VALUE)),
+                        init(new Ast.Expression.Literal(BigDecimal.valueOf(Double.MAX_VALUE)), ast -> ast.setType(Environment.Type.DECIMAL))
+                ),
+                Arguments.of("Decimal Invalid",
+                        new Ast.Expression.Literal(BigDecimal.valueOf(Double.MAX_VALUE).multiply(BigDecimal.TWO)),
                         null
                 )
         );

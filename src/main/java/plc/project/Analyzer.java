@@ -112,22 +112,67 @@ public final class Analyzer implements Ast.Visitor<Void> {
         } finally {
             scope = scope.getParent();
         }
+        try {
+            scope = new Scope(scope);
+            ast.getElseStatements().forEach(this::visit);
+        } finally {
+            scope = scope.getParent();
+        }
+
         return null;
     }
 
     @Override
     public Void visit(Ast.Statement.Switch ast) {
-        throw new UnsupportedOperationException();  // TODO
+        visit(ast.getCondition());
+        Environment.Type requiredType = ast.getCondition().getType();
+        if (ast.getCases().getLast().getValue().isPresent()) {
+            throw new RuntimeException("Default case contains value");
+        }
+
+        ast.getCases().forEach(caseExp -> {
+            try {
+                scope = new Scope(scope);
+                visit(caseExp);
+                if (caseExp.getValue().isPresent()) {
+                    if (!caseExp.getValue().get().getType().equals(requiredType)) {
+                        throw new RuntimeException("Case value type does not match condition");
+                    }
+                }
+            } finally {
+                scope = scope.getParent();
+            }
+        });
+
+        return null;
     }
 
     @Override
     public Void visit(Ast.Statement.Case ast) {
-        throw new UnsupportedOperationException();  // TODO
+        if (ast.getValue().isPresent()) {
+            visit(ast.getValue().get());
+        }
+        try {
+            scope = new Scope(scope);
+            ast.getStatements().forEach(this::visit);
+        } finally {
+            scope = scope.getParent();
+        }
+        return null;
     }
 
     @Override
     public Void visit(Ast.Statement.While ast) {
-        throw new UnsupportedOperationException();  // TODO
+        if (!ast.getCondition().getType().equals(Environment.Type.BOOLEAN)) {
+            throw new RuntimeException("Expected boolean");
+        }
+        try {
+            scope = new Scope(scope);
+            ast.getStatements().forEach(this::visit);
+        } finally {
+            scope = scope.getParent();
+        }
+        return null;
     }
 
     @Override
