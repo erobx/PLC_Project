@@ -57,6 +57,41 @@ public final class AnalyzerTests {
                                 )
                         ),
                         null
+                ),
+                // VAR value: Integer = 1;
+                Arguments.of("Missing Main",
+                        new Ast.Source(
+                                Arrays.asList(
+                                        new Ast.Global("value", "Integer", true, Optional.of(new Ast.Expression.Literal(BigInteger.ONE)))
+                                ),
+                                Arrays.asList()
+                        ),
+                        null
+                ),
+                // VAR num: Integer = 1; FUN main(): Integer DO print(num + 1.0); END
+                Arguments.of("Binary Exception",
+                        new Ast.Source(
+                                Arrays.asList(new Ast.Global("num", "Integer", true, Optional.of(new Ast.Expression.Literal(BigInteger.ONE)))
+                                ),
+                                Arrays.asList(new Ast.Function("main", Arrays.asList(), Arrays.asList(), Optional.of("Integer"), Arrays.asList(
+                                                new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Binary("+",
+                                                        new Ast.Expression.Access(Optional.empty(), "num"), new Ast.Expression.Literal(BigDecimal.ONE))))))
+                                            )
+                                )
+                        ),
+                        null
+                ),
+                // FUN main() DO print("Hello, World!"); END
+                Arguments.of("Invalid Return Type",
+                        new Ast.Source(
+                                Arrays.asList(),
+                                Arrays.asList(
+                                        new Ast.Function("main", Arrays.asList(), Arrays.asList(), Optional.empty(), Arrays.asList(
+                                                new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Literal("Hello, World!"))))
+                                        ))
+                                )
+                        ),
+                        null
                 )
         );
     }
@@ -93,6 +128,27 @@ public final class AnalyzerTests {
                         // VAR name: Unknown;
                         new Ast.Global("name", "Unknown", true, Optional.empty()),
                         null
+                ),
+                Arguments.of("List Integer",
+                        // LIST list: Integer = [1, 2, 3];
+                        new Ast.Global("list", "Integer", true, Optional.of(
+                                new Ast.Expression.PlcList(Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE),
+                                        new Ast.Expression.Literal(BigInteger.valueOf(2)), new Ast.Expression.Literal(BigInteger.valueOf(3)))))),
+                        init(new Ast.Global("list", "Integer", true, Optional.of(
+                                init(new Ast.Expression.PlcList(Arrays.asList(
+                                        init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER)),
+                                        init(new Ast.Expression.Literal(BigInteger.valueOf(2)), ast -> ast.setType(Environment.Type.INTEGER)),
+                                        init(new Ast.Expression.Literal(BigInteger.valueOf(3)), ast -> ast.setType(Environment.Type.INTEGER))
+                                )), ast -> ast.setType(Environment.Type.INTEGER))
+                        )), ast -> ast.setVariable(new Environment.Variable("list", "list", Environment.Type.INTEGER, true, Environment.NIL)))
+                ),
+                Arguments.of("Initialization",
+                        // VAR name: Integer = 1;
+                        new Ast.Global("name", "Integer", true, Optional.of(
+                                new Ast.Expression.Literal(BigInteger.ONE))),
+                        init(new Ast.Global("name", "Integer", true, Optional.of(
+                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))
+                        )), ast -> ast.setVariable(new Environment.Variable("name", "name", Environment.Type.INTEGER, true, Environment.NIL)))
                 )
         );
     }
@@ -144,6 +200,13 @@ public final class AnalyzerTests {
                                 ))
                         )),
                         null
+                ),
+                Arguments.of("No Explicit Return Type",
+                        // FUN empty() DO END
+                        new Ast.Function("empty", Arrays.asList(), Arrays.asList(), Optional.empty(), Arrays.asList()),
+                        init(new Ast.Function("empty", Arrays.asList(), Arrays.asList(), Optional.empty(), Arrays.asList()),
+                                ast -> ast.setFunction(new Environment.Function("empty", "empty", Arrays.asList(), Environment.Type.NIL, args -> Environment.NIL))
+                        )
                 )
         );
     }
@@ -272,9 +335,7 @@ public final class AnalyzerTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     public void testIfStatement(String test, Ast.Statement.If ast, Ast.Statement.If expected) {
-        test(ast, expected, init(new Scope(null), scope -> {
-           scope.defineFunction("print", "System.out.println", Arrays.asList(Environment.Type.INTEGER), Environment.Type.NIL, args -> Environment.NIL);
-        }));
+        test(ast, expected, new Scope(null));
     }
 
     private static Stream<Arguments> testIfStatement() {
@@ -359,6 +420,33 @@ public final class AnalyzerTests {
                                         )), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL))))
                                 ),
                                 Arrays.asList()
+                        )
+                ),
+                Arguments.of("Else Statements",
+                        // IF FALSE DO print(1); ELSE print(2); END
+                        new Ast.Statement.If(
+                                new Ast.Expression.Literal(Boolean.FALSE),
+                                Arrays.asList(new Ast.Statement.Expression(
+                                        new Ast.Expression.Function("print", Arrays.asList(
+                                                new Ast.Expression.Literal(BigInteger.ONE)
+                                        ))
+                                )),
+                                Arrays.asList(new Ast.Statement.Expression(
+                                        new Ast.Expression.Function("print", Arrays.asList(
+                                                new Ast.Expression.Literal(BigInteger.valueOf(2))
+                                        ))
+                                ))
+                        ),
+                        new Ast.Statement.If(
+                                init(new Ast.Expression.Literal(Boolean.FALSE), ast -> ast.setType(Environment.Type.BOOLEAN)),
+                                Arrays.asList(new Ast.Statement.Expression(
+                                        init(new Ast.Expression.Function("print", Arrays.asList(
+                                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))
+                                        )), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL))))),
+                                Arrays.asList(new Ast.Statement.Expression(
+                                        init(new Ast.Expression.Function("print", Arrays.asList(
+                                                init(new Ast.Expression.Literal(BigInteger.valueOf(2)), ast -> ast.setType(Environment.Type.INTEGER))
+                                        )), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL)))))
                         )
                 )
         );
@@ -481,6 +569,29 @@ public final class AnalyzerTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
+    public void testWhileStatement(String test, Ast.Statement.While ast, Ast.Statement.While expected) {
+        test(ast, expected, new Scope(null));
+    }
+
+    private static Stream<Arguments> testWhileStatement() {
+        return Stream.of(
+            Arguments.of("Valid Condition",
+                    // WHILE TRUE DO END
+                    new Ast.Statement.While(new Ast.Expression.Literal(Boolean.TRUE), Arrays.asList()),
+                    new Ast.Statement.While(init(new Ast.Expression.Literal(Boolean.TRUE), ast -> ast.setType(Environment.Type.BOOLEAN)),
+                            Arrays.asList()
+                    )
+            ),
+            Arguments.of("Invalid Condition",
+                    // WHILE 0 DO END
+                    new Ast.Statement.While(new Ast.Expression.Literal(BigInteger.ZERO), Arrays.asList()),
+                    null
+            )
+        );
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
     public void testLiteralExpression(String test, Ast.Expression.Literal ast, Ast.Expression.Literal expected) {
         test(ast, expected, new Scope(null));
     }
@@ -538,6 +649,19 @@ public final class AnalyzerTests {
                                     init(new Ast.Expression.Literal(BigInteger.TEN), ast -> ast.setType(Environment.Type.INTEGER))
                                 ), ast -> ast.setType(Environment.Type.INTEGER))
                         ), ast -> ast.setType(Environment.Type.INTEGER))
+                ),
+                Arguments.of("Boolean Comparison",
+                        // ("a" < "b")
+                        new Ast.Expression.Group(new Ast.Expression.Binary("<",
+                                new Ast.Expression.Literal("a"),
+                                new Ast.Expression.Literal("b")
+                        )),
+                        init(new Ast.Expression.Group(
+                                init(new Ast.Expression.Binary("<",
+                                    init(new Ast.Expression.Literal("a"), ast -> ast.setType(Environment.Type.STRING)),
+                                    init(new Ast.Expression.Literal("b"), ast -> ast.setType(Environment.Type.STRING))
+                                ), ast -> ast.setType(Environment.Type.BOOLEAN))
+                        ), ast -> ast.setType(Environment.Type.BOOLEAN))
                 )
         );
     }
@@ -595,7 +719,7 @@ public final class AnalyzerTests {
                         // 1 + 1.0
                         new Ast.Expression.Binary("+",
                                 new Ast.Expression.Literal(BigInteger.ONE),
-                                new Ast.Expression.Literal(BigDecimal.ONE)
+                                new Ast.Expression.Literal(new BigDecimal("1.0"))
                         ),
                         null
                 ),
@@ -629,6 +753,8 @@ public final class AnalyzerTests {
     public void testAccessExpression(String test, Ast.Expression.Access ast, Ast.Expression.Access expected) {
         test(ast, expected, init(new Scope(null), scope -> {
             scope.defineVariable("variable", "variable", Environment.Type.INTEGER, true, Environment.NIL);
+            scope.defineVariable("list", "list", Environment.Type.INTEGER, true,
+                    Environment.create(new Ast.Expression.PlcList(Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE), new Ast.Expression.Literal(BigInteger.TEN)))));
         }));
     }
 
@@ -638,6 +764,20 @@ public final class AnalyzerTests {
                         // variable
                         new Ast.Expression.Access(Optional.empty(), "variable"),
                         init(new Ast.Expression.Access(Optional.empty(), "variable"), ast -> ast.setVariable(new Environment.Variable("variable", "variable", Environment.Type.INTEGER, true, Environment.NIL)))
+                ),
+                Arguments.of("Valid List",
+                        // list[1]
+                        new Ast.Expression.Access(Optional.of(new Ast.Expression.Literal(BigInteger.ONE)), "list"),
+                        init(new Ast.Expression.Access(Optional.of(init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))), "list"),
+                                ast -> ast.setVariable(new Environment.Variable("list", "list",
+                                        Environment.Type.INTEGER, true, Environment.create(new Ast.Expression.PlcList(
+                                                Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE), new Ast.Expression.Literal(BigInteger.TEN))
+                        )))))
+                ),
+                Arguments.of("Invalid List",
+                        // list["c"]
+                        new Ast.Expression.Access(Optional.of(new Ast.Expression.Literal("c")), "list"),
+                        null
                 )
         );
     }
@@ -648,7 +788,6 @@ public final class AnalyzerTests {
         test(ast, expected, init(new Scope(null), scope -> {
             scope.defineFunction("function", "function", Arrays.asList(), Environment.Type.INTEGER, args -> Environment.NIL);
             scope.defineFunction("function", "function", Arrays.asList(Environment.Type.INTEGER), Environment.Type.INTEGER, args -> Environment.NIL);
-            scope.defineFunction("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL);
         }));
     }
 
@@ -714,7 +853,8 @@ public final class AnalyzerTests {
                 Arguments.of("Integer to Decimal", Environment.Type.DECIMAL, Environment.Type.INTEGER, false),
                 Arguments.of("Integer to Comparable", Environment.Type.COMPARABLE, Environment.Type.INTEGER,  true),
                 Arguments.of("Integer to Any", Environment.Type.ANY, Environment.Type.INTEGER, true),
-                Arguments.of("Any to Integer", Environment.Type.INTEGER, Environment.Type.ANY, false)
+                Arguments.of("Any to Integer", Environment.Type.INTEGER, Environment.Type.ANY, false),
+                Arguments.of("Boolean to Comparable", Environment.Type.COMPARABLE, Environment.Type.BOOLEAN, false)
         );
     }
 

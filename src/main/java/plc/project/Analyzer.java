@@ -15,6 +15,8 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     public Scope scope;
     private Ast.Function function;
+    private Environment.Type functionReturnType;
+    private Environment.Type listType;
 
     public Analyzer(Scope parent) {
         scope = new Scope(parent);
@@ -27,17 +29,53 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Source ast) {
-        throw new UnsupportedOperationException();  // TODO
+        ast.getGlobals().forEach(this::visit);
+        ast.getFunctions().forEach(this::visit);
+        Environment.Function main = scope.lookupFunction("main", 0);
+        requireAssignable(Environment.Type.INTEGER, main.getReturnType());
+        return null;
     }
 
     @Override
     public Void visit(Ast.Global ast) {
-        throw new UnsupportedOperationException();  // TODO
+        Environment.Variable var = new Environment.Variable(ast.getName(), ast.getName(),
+                Environment.getType(ast.getTypeName()), ast.getMutable(), Environment.NIL);
+
+        if (ast.getValue().isPresent()) {
+            if (ast.getValue().get() instanceof Ast.Expression.PlcList) {
+                listType = Environment.getType(ast.getTypeName());
+            }
+            visit(ast.getValue().get());
+            requireAssignable(Environment.getType(ast.getTypeName()), ast.getValue().get().getType());
+        }
+
+        scope.defineVariable(var.getName(), var.getJvmName(), var.getType(), var.getMutable(), var.getValue());
+        ast.setVariable(var);
+        return null;
     }
 
     @Override
     public Void visit(Ast.Function ast) {
-        throw new UnsupportedOperationException();  // TODO
+        List<Environment.Type> paramTypes = new ArrayList<>();
+        ast.getParameterTypeNames().forEach(name -> paramTypes.add(Environment.getType(name)));
+
+        Environment.Type returnType = Environment.NIL.getType();
+        if (ast.getReturnTypeName().isPresent()) {
+            returnType = Environment.getType(ast.getReturnTypeName().get());
+            functionReturnType = returnType;
+        }
+        Environment.Function func = new Environment.Function(ast.getName(), ast.getName(), paramTypes, returnType, args -> Environment.NIL);
+        scope.defineFunction(func.getName(), func.getJvmName(), func.getParameterTypes(), func.getReturnType(), args -> Environment.NIL);
+        ast.setFunction(func);
+
+        try {
+            scope = new Scope(scope);
+            ast.getStatements().forEach(this::visit);
+        } finally {
+            scope = scope.getParent();
+        }
+
+        return null;
     }
 
     @Override
@@ -163,6 +201,7 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.While ast) {
+        visit(ast.getCondition());
         if (!ast.getCondition().getType().equals(Environment.Type.BOOLEAN)) {
             throw new RuntimeException("Expected boolean");
         }
@@ -177,6 +216,8 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.Return ast) {
+        visit(ast.getValue());
+        requireAssignable(functionReturnType,ast.getValue().getType());
         return null;
     }
 
@@ -303,9 +344,8 @@ public final class Analyzer implements Ast.Visitor<Void> {
     @Override
     public Void visit(Ast.Expression.Access ast) {
         if (ast.getOffset().isPresent()) {
-            Ast.Expression offset = ast.getOffset().get();
-            visit(offset);
-            if (offset.getType() == null) {
+            visit(ast.getOffset().get());
+            if (!ast.getOffset().get().getType().equals(Environment.Type.INTEGER)) {
                 throw new RuntimeException("Offset not an integer.");
             }
         }
@@ -333,7 +373,12 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Expression.PlcList ast) {
-        throw new UnsupportedOperationException();  // TODO
+        ast.getValues().forEach(exp -> {
+            visit(exp);
+            requireAssignable(listType, exp.getType());
+        });
+        ast.setType(listType);
+        return null;
     }
 
     public static void requireAssignable(Environment.Type target, Environment.Type type) {
