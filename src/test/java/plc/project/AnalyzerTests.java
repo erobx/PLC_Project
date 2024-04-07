@@ -57,6 +57,29 @@ public final class AnalyzerTests {
                                 )
                         ),
                         null
+                ),
+                // VAR value: Integer = 1;
+                Arguments.of("Missing Main",
+                        new Ast.Source(
+                                Arrays.asList(
+                                        new Ast.Global("value", "Integer", true, Optional.of(new Ast.Expression.Literal(BigInteger.ONE)))
+                                ),
+                                Arrays.asList()
+                        ),
+                        null
+                ),
+                // VAR num: Integer = 1; FUN main(): Integer DO print(num + 1.0); END
+                Arguments.of("Binary Exception",
+                        new Ast.Source(
+                                Arrays.asList(new Ast.Global("num", "Integer", true, Optional.of(new Ast.Expression.Literal(BigInteger.ONE)))
+                                ),
+                                Arrays.asList(new Ast.Function("main", Arrays.asList(), Arrays.asList(), Optional.of("Integer"), Arrays.asList(
+                                                new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Binary("+",
+                                                        new Ast.Expression.Access(Optional.empty(), "num"), new Ast.Expression.Literal(BigDecimal.ONE))))))
+                                            )
+                                )
+                        ),
+                        null
                 )
         );
     }
@@ -93,6 +116,19 @@ public final class AnalyzerTests {
                         // VAR name: Unknown;
                         new Ast.Global("name", "Unknown", true, Optional.empty()),
                         null
+                ),
+                Arguments.of("List Integer",
+                        // LIST list: Integer = [1, 2, 3];
+                        new Ast.Global("list", "Integer", true, Optional.of(
+                                new Ast.Expression.PlcList(Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE),
+                                        new Ast.Expression.Literal(BigInteger.valueOf(2)), new Ast.Expression.Literal(BigInteger.valueOf(3)))))),
+                        init(new Ast.Global("list", "Integer", true, Optional.of(
+                                init(new Ast.Expression.PlcList(Arrays.asList(
+                                        init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER)),
+                                        init(new Ast.Expression.Literal(BigInteger.valueOf(2)), ast -> ast.setType(Environment.Type.INTEGER)),
+                                        init(new Ast.Expression.Literal(BigInteger.valueOf(3)), ast -> ast.setType(Environment.Type.INTEGER))
+                                )), ast -> ast.setType(Environment.Type.INTEGER))
+                        )), ast -> ast.setVariable(new Environment.Variable("list", "list", Environment.Type.INTEGER, true, Environment.NIL)))
                 )
         );
     }
@@ -595,7 +631,7 @@ public final class AnalyzerTests {
                         // 1 + 1.0
                         new Ast.Expression.Binary("+",
                                 new Ast.Expression.Literal(BigInteger.ONE),
-                                new Ast.Expression.Literal(BigDecimal.ONE)
+                                new Ast.Expression.Literal(new BigDecimal("1.0"))
                         ),
                         null
                 ),
