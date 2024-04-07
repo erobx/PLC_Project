@@ -31,7 +31,8 @@ public final class Analyzer implements Ast.Visitor<Void> {
     public Void visit(Ast.Source ast) {
         ast.getGlobals().forEach(this::visit);
         ast.getFunctions().forEach(this::visit);
-        scope.lookupFunction("main", 0);
+        Environment.Function main = scope.lookupFunction("main", 0);
+        requireAssignable(Environment.Type.INTEGER, main.getReturnType());
         return null;
     }
 
@@ -200,6 +201,7 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.While ast) {
+        visit(ast.getCondition());
         if (!ast.getCondition().getType().equals(Environment.Type.BOOLEAN)) {
             throw new RuntimeException("Expected boolean");
         }
@@ -342,9 +344,8 @@ public final class Analyzer implements Ast.Visitor<Void> {
     @Override
     public Void visit(Ast.Expression.Access ast) {
         if (ast.getOffset().isPresent()) {
-            Ast.Expression offset = ast.getOffset().get();
-            visit(offset);
-            if (offset.getType() == null) {
+            visit(ast.getOffset().get());
+            if (!ast.getOffset().get().getType().equals(Environment.Type.INTEGER)) {
                 throw new RuntimeException("Offset not an integer.");
             }
         }
