@@ -768,11 +768,15 @@ public final class AnalyzerTests {
                 Arguments.of("Valid List",
                         // list[1]
                         new Ast.Expression.Access(Optional.of(new Ast.Expression.Literal(BigInteger.ONE)), "list"),
-                        init(new Ast.Expression.Access(Optional.of(init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))), "list"),
+                        init(new Ast.Expression.Access(Optional.of(
+                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))), "list"),
                                 ast -> ast.setVariable(new Environment.Variable("list", "list",
-                                        Environment.Type.INTEGER, true, Environment.create(new Ast.Expression.PlcList(
-                                                Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE), new Ast.Expression.Literal(BigInteger.TEN))
-                        )))))
+                                        Environment.Type.INTEGER, true, Environment.create(
+                                                init(new Ast.Expression.PlcList(Arrays.asList(
+                                                        init(new Ast.Expression.Literal(BigInteger.ONE), as -> as.setType(Environment.Type.INTEGER)),
+                                                        init(new Ast.Expression.Literal(BigInteger.TEN), as -> as.setType(Environment.Type.INTEGER))
+                                                )), as -> as.setType(Environment.Type.INTEGER)))))
+                        )
                 ),
                 Arguments.of("Invalid List",
                         // list["c"]

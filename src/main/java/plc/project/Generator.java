@@ -30,8 +30,6 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Source ast) {
-
-
         return null;
     }
 
@@ -82,7 +80,10 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.Return ast) {
-        throw new UnsupportedOperationException(); //TODO
+        print("return ");
+        visit(ast.getValue());
+        print(";");
+        return null;
     }
 
     @Override
@@ -131,17 +132,48 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Expression.Access ast) {
-        throw new UnsupportedOperationException(); //TODO
+        print(ast.getVariable().getJvmName());
+        if (ast.getOffset().isPresent()) {
+            print("[");
+            visit(ast.getOffset().get());
+            print("]");
+        }
+        return null;
     }
 
     @Override
     public Void visit(Ast.Expression.Function ast) {
-        throw new UnsupportedOperationException(); //TODO
+        print(ast.getFunction().getJvmName());
+        print("(");
+        int[] index = {0};
+        if (!ast.getArguments().isEmpty()) {
+            ast.getArguments().forEach(exp -> {
+                index[0]++;
+                visit(exp);
+                if (index[0] != ast.getArguments().size()) {
+                    print(", ");
+                }
+            });
+        }
+        print(")");
+        return null;
     }
 
     @Override
     public Void visit(Ast.Expression.PlcList ast) {
-        throw new UnsupportedOperationException(); //TODO
+        print("{");
+        int[] index = {0};
+        if (!ast.getValues().isEmpty()) {
+            ast.getValues().forEach(exp -> {
+                index[0]++;
+                visit(exp);
+                if (index[0] != ast.getValues().size()) {
+                    print(", ");
+                }
+            });
+        }
+        print("}");
+        return null;
     }
 
 }

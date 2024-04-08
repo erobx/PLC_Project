@@ -206,6 +206,27 @@ public class GeneratorTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
+    void testReturnStatement(String test, Ast.Statement.Return ast, String expected) {
+        test(ast, expected);
+    }
+
+    private static Stream<Arguments> testReturnStatement() {
+        return Stream.of(
+                Arguments.of("Return",
+                        // RETURN 5 * 10
+                        new Ast.Statement.Return(
+                                init(new Ast.Expression.Binary("*",
+                                        init(new Ast.Expression.Literal(BigInteger.valueOf(5)), ast -> ast.setType(Environment.Type.INTEGER)),
+                                        init(new Ast.Expression.Literal(BigInteger.TEN), ast -> ast.setType(Environment.Type.INTEGER))
+                                ), ast -> ast.setType(Environment.Type.INTEGER))
+                        ),
+                        "return 5 * 10;"
+                )
+        );
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
     void testLiteralExpression(String test, Ast.Expression.Literal ast, String expected) {
         test(ast, expected);
     }
@@ -321,6 +342,38 @@ public class GeneratorTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
+    void testAccessExpression(String test, Ast.Expression.Access ast, String expected) {
+        test(ast, expected);
+    }
+
+    private static Stream<Arguments> testAccessExpression() {
+        return Stream.of(
+                Arguments.of("Variable",
+                        // variable
+                        init(new Ast.Expression.Access(Optional.empty(), "variable"),
+                                ast -> ast.setVariable(new Environment.Variable("variable", "variable", Environment.Type.NIL, true, Environment.NIL))
+                        ),
+                        "variable"
+                ),
+                Arguments.of("List Access",
+                        // list[expr]
+                        init(new Ast.Expression.Access(
+                            Optional.of(init(new Ast.Expression.Access(Optional.empty(), "expr"),
+                                ast -> ast.setVariable(new Environment.Variable("expr", "expr", Environment.Type.NIL, true, Environment.NIL))
+                            )), "list"),
+                                ast -> ast.setVariable(new Environment.Variable("list", "list", Environment.Type.INTEGER, true, Environment.create(
+                                    init(new Ast.Expression.PlcList(Arrays.asList(init(new Ast.Expression.Literal(BigInteger.ONE), as -> as.setType(Environment.Type.INTEGER)))),
+                                            as -> as.setType(Environment.Type.INTEGER)
+                                    )
+                                )))
+                        ),
+                        "list[expr]"
+                )
+        );
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
     void testFunctionExpression(String test, Ast.Expression.Function ast, String expected) {
         test(ast, expected);
     }
@@ -333,6 +386,54 @@ public class GeneratorTests {
                                 init(new Ast.Expression.Literal("Hello, World!"), ast -> ast.setType(Environment.Type.STRING))
                         )), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL))),
                         "System.out.println(\"Hello, World!\")"
+                ),
+                Arguments.of("No Arguments",
+                        // function()
+                        init(new Ast.Expression.Function("function", Arrays.asList()),
+                                ast -> ast.setFunction(new Environment.Function("function", "function", Arrays.asList(), Environment.Type.NIL, args -> Environment.NIL))
+                        ),
+                        "function()"
+                ),
+                Arguments.of("Multiple Arguments",
+                        // f(1, 2, 3)
+                        init(new Ast.Expression.Function("f", Arrays.asList(
+                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER)),
+                                init(new Ast.Expression.Literal(BigInteger.valueOf(2)), ast -> ast.setType(Environment.Type.INTEGER)),
+                                init(new Ast.Expression.Literal(BigInteger.valueOf(3)), ast -> ast.setType(Environment.Type.INTEGER))
+                        )), ast -> ast.setFunction(new Environment.Function("f", "f", Arrays.asList(Environment.Type.INTEGER, Environment.Type.INTEGER, Environment.Type.INTEGER), Environment.Type.NIL, args -> Environment.NIL))),
+                        "f(1, 2, 3)"
+                )
+        );
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void testPlcListExpression(String test, Ast.Expression.PlcList ast, String expected) {
+        test(ast, expected);
+    }
+
+    private static Stream<Arguments> testPlcListExpression() {
+        return Stream.of(
+                Arguments.of("Decimal List",
+                        // [1.0, 1.5, 2.0]
+                        init(new Ast.Expression.PlcList(Arrays.asList(
+                                init(new Ast.Expression.Literal(new BigDecimal("1.0")), ast -> ast.setType(Environment.Type.DECIMAL)),
+                                init(new Ast.Expression.Literal(new BigDecimal("1.5")), ast -> ast.setType(Environment.Type.DECIMAL)),
+                                init(new Ast.Expression.Literal(new BigDecimal("2.0")), ast -> ast.setType(Environment.Type.DECIMAL))
+                        )), ast -> ast.setType(Environment.Type.DECIMAL)),
+                        "{1.0, 1.5, 2.0}"
+                ),
+                Arguments.of("Empty List",
+                        // {}
+                        init(new Ast.Expression.PlcList(Arrays.asList()), ast -> ast.setType(Environment.Type.NIL)),
+                        "{}"
+                ),
+                Arguments.of("One Value",
+                        // [10]
+                        init(new Ast.Expression.PlcList(Arrays.asList(
+                                init(new Ast.Expression.Literal(BigInteger.TEN), ast -> ast.setType(Environment.Type.INTEGER))
+                        )), ast -> ast.setType(Environment.Type.INTEGER)),
+                        "{10}"
                 )
         );
     }
