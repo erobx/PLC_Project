@@ -45,7 +45,9 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.Expression ast) {
-        throw new UnsupportedOperationException(); //TODO
+        visit(ast.getExpression());
+        print(";");
+        return null;
     }
 
     @Override
@@ -60,7 +62,44 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.If ast) {
-        throw new UnsupportedOperationException(); //TODO
+        print("if ");
+        wrapParens(ast.getCondition());
+        print(" {");
+
+        if (!ast.getThenStatements().isEmpty()) {
+            newline(1);
+            int[] index = {0};
+            ast.getThenStatements().forEach(stmt -> {
+                index[0]++;
+                visit(stmt);
+                if (index[0] != ast.getThenStatements().size()) {
+                    newline(1);
+                } else {
+                    newline(0);
+                }
+            });
+            print("}");
+        } else {
+            newline(0);
+            print("}");
+        }
+
+        if (!ast.getElseStatements().isEmpty()) {
+            print(" else {");
+            newline(1);
+            int[] index = {0};
+            ast.getElseStatements().forEach(stmt -> {
+                index[0]++;
+                visit(stmt);
+                if (index[0] != ast.getThenStatements().size()) {
+                    newline(1);
+                } else {
+                    newline(0);
+                }
+            });
+            print("}");
+        }
+        return null;
     }
 
     @Override
@@ -107,9 +146,7 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Expression.Group ast) {
-        print("(");
-        visit(ast.getExpression());
-        print(")");
+        wrapParens(ast.getExpression());
         return null;
     }
 
@@ -176,4 +213,10 @@ public final class Generator implements Ast.Visitor<Void> {
         return null;
     }
 
+    private Void wrapParens(Ast.Expression exp) {
+        print("(");
+        visit(exp);
+        print(")");
+        return null;
+    }
 }

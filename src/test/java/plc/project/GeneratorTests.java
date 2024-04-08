@@ -140,6 +140,19 @@ public class GeneratorTests {
                                 "    stmt2;",
                                 "}"
                         )
+                ),
+                Arguments.of("Empty If",
+                        // IF expr DO
+                        // END
+                        new Ast.Statement.If(
+                                init(new Ast.Expression.Access(Optional.empty(), "expr"), ast -> ast.setVariable(new Environment.Variable("expr", "expr", Environment.Type.BOOLEAN, true, Environment.NIL))),
+                                Arrays.asList(),
+                                Arrays.asList()
+                        ),
+                        String.join(System.lineSeparator(),
+                                "if (expr) {",
+                                "}"
+                        )
                 )
         );
     }
