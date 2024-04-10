@@ -56,6 +56,92 @@ public class GeneratorTests {
                                 "",
                                 "}"
                         )
+                ),
+                Arguments.of("Sum",
+                        // VAR x: Integer;
+                        // VAR y: Integer = 10;
+                        // FUN main(): Integer DO
+                        //     RETURN x + y;
+                        // END
+                        new Ast.Source(
+                                Arrays.asList(
+                                        init(new Ast.Global("x", "Integer", true, Optional.empty()),
+                                                ast -> ast.setVariable(new Environment.Variable("x", "x", Environment.Type.INTEGER, true, Environment.NIL))
+                                        ),
+                                        init(new Ast.Global("y", "Integer", true, Optional.of(init(new Ast.Expression.Literal(BigInteger.TEN), ast -> ast.setType(Environment.Type.INTEGER)))),
+                                                ast -> ast.setVariable(new Environment.Variable("y", "y", Environment.Type.INTEGER, true, Environment.NIL))
+                                        )
+                                ),
+                                Arrays.asList(
+                                        init(new Ast.Function("main", Arrays.asList(), Arrays.asList(), Optional.of("Integer"), Arrays.asList(
+                                                new Ast.Statement.Return(
+                                                        init(new Ast.Expression.Binary("+",
+                                                            init(new Ast.Expression.Access(Optional.empty(), "x"),
+                                                                    ast -> ast.setVariable(new Environment.Variable("x", "x", Environment.Type.INTEGER, true, Environment.NIL))),
+                                                            init(new Ast.Expression.Access(Optional.empty(), "y"),
+                                                                    ast -> ast.setVariable(new Environment.Variable("y", "y", Environment.Type.INTEGER, true, Environment.NIL)))
+                                                        ), ast -> ast.setType(Environment.Type.BOOLEAN))
+                                                ))), ast -> ast.setFunction(new Environment.Function("main", "main", Arrays.asList(), Environment.Type.INTEGER, args -> Environment.NIL))
+                                        )
+                                )
+                        ),
+                        String.join(System.lineSeparator(),
+                                "public class Main {",
+                                "",
+                                "    int x;",
+                                "    int y = 10;",
+                                "",
+                                "    public static void main(String[] args) {",
+                                "        System.exit(new Main().main());",
+                                "    }",
+                                "",
+                                "    int main() {",
+                                "        return x + y;",
+                                "    }",
+                                "",
+                                "}"
+                        )
+                ),
+                Arguments.of("Multiple Functions",
+                        // FUN test() DO
+                        //     print("Hello, World!");
+                        // END
+                        // FUN main(): Integer DO
+                        //     print("Hello, World!");
+                        // END
+                        new Ast.Source(
+                                Arrays.asList(),
+                                Arrays.asList(
+                                        init(new Ast.Function("test", Arrays.asList(), Arrays.asList(), Optional.empty(), Arrays.asList(
+                                                new Ast.Statement.Expression(init(new Ast.Expression.Function("print", Arrays.asList(
+                                                        init(new Ast.Expression.Literal("Hello, World!"), ast -> ast.setType(Environment.Type.STRING))
+                                                )), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.NIL), Environment.Type.NIL, args -> Environment.NIL))))
+                                        )), ast -> ast.setFunction(new Environment.Function("test", "test", Arrays.asList(), Environment.Type.NIL, args -> Environment.NIL))),
+                                        init(new Ast.Function("main", Arrays.asList(), Arrays.asList(), Optional.of("Integer"), Arrays.asList(
+                                        new Ast.Statement.Expression(init(new Ast.Expression.Function("print", Arrays.asList(
+                                                init(new Ast.Expression.Literal("Hello, World!"), ast -> ast.setType(Environment.Type.STRING))
+                                        )), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL)))),
+                                        new Ast.Statement.Return(init(new Ast.Expression.Literal(BigInteger.ZERO), ast -> ast.setType(Environment.Type.INTEGER)))
+                                )), ast -> ast.setFunction(new Environment.Function("main", "main", Arrays.asList(), Environment.Type.INTEGER, args -> Environment.NIL))))
+                        ),
+                        String.join(System.lineSeparator(),
+                                "public class Main {",
+                                "",
+                                "    public static void main(String[] args) {",
+                                "        System.exit(new Main().main());",
+                                "    }",
+                                "",
+                                "    Void test() {",
+                                "        System.out.println(\"Hello, World!\");",
+                                "    }",
+                                "",
+                                "    int main() {",
+                                "        System.out.println(\"Hello, World!\");",
+                                "        return 0;",
+                                "    }",
+                                "",
+                                "}"
+                        )
                 )
         );
     }
@@ -66,6 +152,51 @@ public class GeneratorTests {
 
     private static Stream<Arguments> testGlobal() {
         return Stream.of(
+                Arguments.of("Mutable String",
+                        // VAR x: String;
+                        init(new Ast.Global("x", "String", true, Optional.empty()),
+                                ast -> ast.setVariable(new Environment.Variable("x", "x", Environment.Type.STRING, true, Environment.NIL))
+                        ),
+                        "String x;"
+                ),
+                Arguments.of("Mutable Integer",
+                        // VAR x: Integer;
+                        init(new Ast.Global("x", "Integer", true, Optional.empty()),
+                                ast -> ast.setVariable(new Environment.Variable("x", "x", Environment.Type.INTEGER, true, Environment.NIL))
+                        ),
+                        "int x;"
+                ),
+                Arguments.of("Mutable With Value",
+                        // VAR x: String = "test";
+                        init(new Ast.Global("x", "String", true, Optional.of(
+                                init(new Ast.Expression.Literal("test"), ast -> ast.setType(Environment.Type.STRING))
+                            )),
+                            ast -> ast.setVariable(new Environment.Variable("x", "x", Environment.Type.STRING, true, Environment.NIL))
+                        ),
+                        "String x = \"test\";"
+                ),
+                Arguments.of("Immutable",
+                        // VAL y: Boolean = TRUE && FALSE;
+                        init(new Ast.Global("y", "Boolean", false, Optional.of(
+                                init(new Ast.Expression.Binary("&&",
+                                        init(new Ast.Expression.Literal(Boolean.TRUE), ast -> ast.setType(Environment.Type.BOOLEAN)),
+                                        init(new Ast.Expression.Literal(Boolean.FALSE), ast -> ast.setType(Environment.Type.BOOLEAN))
+                                ), ast -> ast.setType(Environment.Type.BOOLEAN))
+                        )), ast -> ast.setVariable(new Environment.Variable("y", "y", Environment.Type.BOOLEAN, false, Environment.NIL))),
+                        "final boolean y = true && false;"
+                ),
+                Arguments.of("List",
+                        // LIST list: Decimal = [1.0, 1.5, 2.0];
+                        init(new Ast.Global("list", "Decimal", true, Optional.of(
+                                init(new Ast.Expression.PlcList(Arrays.asList(
+                                        init(new Ast.Expression.Literal(new BigDecimal("1.0")), ast -> ast.setType(Environment.Type.DECIMAL)),
+                                        init(new Ast.Expression.Literal(new BigDecimal("1.5")), ast -> ast.setType(Environment.Type.DECIMAL)),
+                                        init(new Ast.Expression.Literal(new BigDecimal("2.0")), ast -> ast.setType(Environment.Type.DECIMAL))
+                                )), ast -> ast.setType(Environment.Type.DECIMAL)))),
+                                ast -> ast.setVariable(new Environment.Variable("list", "list", Environment.Type.DECIMAL, true, Environment.NIL))
+                        ),
+                        "double[] list = {1.0, 1.5, 2.0};"
+                )
         );
     }
 

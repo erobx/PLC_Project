@@ -31,12 +31,69 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Source ast) {
+        print("public class Main {");
+        newline(0);
+
+        indent++;
+        ast.getGlobals().forEach(global -> {
+            newline(indent);
+            visit(global);
+        });
+        if (!ast.getGlobals().isEmpty()) {
+            newline(0);
+        }
+
+        newline(indent);
+        print("public static void main(String[] args) {");
+        newline(indent+1);
+        print("System.exit(new Main().main());");
+        newline(indent);
+        print("}");
+        newline(0);
+
+        ast.getFunctions().forEach(func -> {
+            newline(indent);
+            visit(func);
+            newline(0);
+        });
+        newline(0);
+
+        print("}");
         return null;
     }
 
     @Override
     public Void visit(Ast.Global ast) {
-        throw new UnsupportedOperationException(); //TODO
+        String typeName = ast.getVariable().getType().getJvmName();
+        // Mutable
+        if (ast.getMutable()) {
+            // Check for list
+            if (ast.getValue().isPresent() && ast.getValue().get() instanceof Ast.Expression.PlcList) {
+                System.out.println("Dealing with lists");
+                print(typeName + "[] " + ast.getName() + " = ");
+                visit(ast.getValue().get());
+                print(";");
+                return null;
+            }
+
+            print(typeName + " " + ast.getName());
+            if (ast.getValue().isPresent()) {
+                print(" = ");
+                visit(ast.getValue().get());
+            }
+            print(";");
+            return null;
+        }
+
+        print("final ");
+        print(typeName + " " + ast.getName());
+        if (ast.getValue().isPresent()) {
+            print(" = ");
+            visit(ast.getValue().get());
+        }
+        print(";");
+
+        return null;
     }
 
     @Override
