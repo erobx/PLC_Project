@@ -1,6 +1,7 @@
 package plc.project;
 
 import java.io.PrintWriter;
+import java.util.List;
 
 public final class Generator implements Ast.Visitor<Void> {
 
@@ -40,7 +41,29 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Function ast) {
-        throw new UnsupportedOperationException(); //TODO
+        print(ast.getFunction().getReturnType().getJvmName() + " " + ast.getFunction().getName() + "(");
+
+        int[] index = {0};
+        if (!ast.getParameters().isEmpty()) {
+            ast.getFunction().getParameterTypes().forEach(type -> {
+                String name = ast.getParameters().get(index[0]);
+                index[0]++;
+                print(type.getJvmName() + " ");
+                print(name);
+                if (index[0] != ast.getParameters().size()) {
+                    print(", ");
+                }
+            });
+        }
+        print(") {");
+        if (ast.getStatements().isEmpty()) {
+            print("}"); return null;
+        }
+
+        printStatements(ast.getStatements());
+        print("}");
+
+        return null;
     }
 
     @Override
@@ -84,32 +107,12 @@ public final class Generator implements Ast.Visitor<Void> {
             return null;
         }
 
-        newline(++indent);
-        int[] index = {0};
-        ast.getThenStatements().forEach(stmt -> {
-            index[0]++;
-            visit(stmt);
-            if (index[0] != ast.getThenStatements().size()) {
-                newline(indent);
-            } else {
-                newline(--indent);
-            }
-        });
+        printStatements(ast.getThenStatements());
         print("}");
 
-        int[] elseIndex = {0};
         if (!ast.getElseStatements().isEmpty()) {
             print(" else {");
-            newline(++indent);
-            ast.getElseStatements().forEach(stmt -> {
-                elseIndex[0]++;
-                visit(stmt);
-                if (elseIndex[0] != ast.getThenStatements().size()) {
-                    newline(indent);
-                } else {
-                    newline(--indent);
-                }
-            });
+            printStatements(ast.getElseStatements());
             print("}");
         }
         return null;
@@ -135,17 +138,7 @@ public final class Generator implements Ast.Visitor<Void> {
             return null;
         }
 
-        newline(++indent);
-        int[] index = {0};
-        ast.getStatements().forEach(stmt -> {
-            index[0]++;
-            visit(stmt);
-            if (index[0] != ast.getStatements().size()) {
-                newline(indent);
-            } else {
-                newline(--indent);
-            }
-        });
+        printStatements(ast.getStatements());
         print("}");
 
         return null;
@@ -216,15 +209,8 @@ public final class Generator implements Ast.Visitor<Void> {
     public Void visit(Ast.Expression.Function ast) {
         print(ast.getFunction().getJvmName());
         print("(");
-        int[] index = {0};
         if (!ast.getArguments().isEmpty()) {
-            ast.getArguments().forEach(exp -> {
-                index[0]++;
-                visit(exp);
-                if (index[0] != ast.getArguments().size()) {
-                    print(", ");
-                }
-            });
+            printExpressions(ast.getArguments());
         }
         print(")");
         return null;
@@ -233,24 +219,41 @@ public final class Generator implements Ast.Visitor<Void> {
     @Override
     public Void visit(Ast.Expression.PlcList ast) {
         print("{");
-        int[] index = {0};
         if (!ast.getValues().isEmpty()) {
-            ast.getValues().forEach(exp -> {
-                index[0]++;
-                visit(exp);
-                if (index[0] != ast.getValues().size()) {
-                    print(", ");
-                }
-            });
+            printExpressions(ast.getValues());
         }
         print("}");
         return null;
     }
 
-    private Void wrapParens(Ast.Expression exp) {
+    private void wrapParens(Ast.Expression exp) {
         print("(");
         visit(exp);
         print(")");
-        return null;
+    }
+
+    private void printExpressions(List<Ast.Expression> exps) {
+        int[] index = {0};
+        exps.forEach(exp -> {
+            index[0]++;
+            visit(exp);
+            if (index[0] != exps.size()) {
+                print(", ");
+            }
+        });
+    }
+
+    private void printStatements(List<Ast.Statement> statements) {
+        newline(++indent);
+        int[] index = {0};
+        statements.forEach(stmt -> {
+            index[0]++;
+            visit(stmt);
+            if (index[0] != statements.size()) {
+                newline(indent);
+            } else {
+                newline(--indent);
+            }
+        });
     }
 }

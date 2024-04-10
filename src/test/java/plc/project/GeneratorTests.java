@@ -7,6 +7,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import javax.swing.text.html.Option;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.math.BigDecimal;
@@ -53,6 +54,72 @@ public class GeneratorTests {
                                 "        return 0;",
                                 "    }",
                                 "",
+                                "}"
+                        )
+                )
+        );
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void testGlobal(String test, Ast.Global ast, String expected) { test(ast, expected); }
+
+    private static Stream<Arguments> testGlobal() {
+        return Stream.of(
+        );
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void testFunction(String test, Ast.Function ast, String expected) { test(ast, expected); }
+
+    private static Stream<Arguments> testFunction() {
+        return Stream.of(
+                Arguments.of("Void No Arguments",
+                        // FUN test() DO
+                        //     print("Hello, World!")
+                        // END
+                        init(new Ast.Function("test", Arrays.asList(), Arrays.asList(), Optional.empty(), Arrays.asList(
+                                new Ast.Statement.Expression(init(new Ast.Expression.Function("print", Arrays.asList(
+                                        init(new Ast.Expression.Literal("Hello, World!"), ast -> ast.setType(Environment.Type.STRING))
+                                )), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.NIL), Environment.Type.NIL, args -> Environment.NIL))))
+                        )), ast -> ast.setFunction(new Environment.Function("test", "test", Arrays.asList(), Environment.Type.NIL, args -> Environment.NIL))),
+                        String.join(System.lineSeparator(),
+                                "Void test() {",
+                                "    System.out.println(\"Hello, World!\");",
+                                "}"
+                        )
+                ),
+                Arguments.of("Empty Statements",
+                        // FUN test() DO
+                        // END
+                        init(new Ast.Function("test", Arrays.asList(), Arrays.asList(), Optional.empty(), Arrays.asList()),
+                                ast -> ast.setFunction(new Environment.Function("test", "test", Arrays.asList(), Environment.Type.NIL, args -> Environment.NIL))),
+                        String.join(System.lineSeparator(),
+                                "Void test() {}"
+                        )
+                ),
+                Arguments.of("Return Type w/Arguments",
+                        // FUN area(radius: Decimal): Decimal DO
+                        //     RETURN 3.14 * radius * radius
+                        // END
+                        init(new Ast.Function("area", Arrays.asList("radius"), Arrays.asList("Decimal"), Optional.of("Decimal"), Arrays.asList(
+                                        new Ast.Statement.Return(
+                                                init(new Ast.Expression.Binary("*",
+                                                        init(new Ast.Expression.Binary("*",
+                                                                init(new Ast.Expression.Literal(new BigDecimal("3.14")), ast -> ast.setType(Environment.Type.DECIMAL)),
+                                                                init(new Ast.Expression.Access(Optional.empty(), "radius"),
+                                                                        ast -> ast.setVariable(new Environment.Variable("radius", "radius", Environment.Type.DECIMAL, true, Environment.NIL))
+                                                                )), ast -> ast.setType(Environment.Type.BOOLEAN)
+                                                        ),
+                                                        init(new Ast.Expression.Access(Optional.empty(), "radius"),
+                                                                ast -> ast.setVariable(new Environment.Variable("radius", "radius", Environment.Type.DECIMAL, true, Environment.NIL))
+                                                        )
+                                                ), ast -> ast.setType(Environment.Type.BOOLEAN))
+                                        ))), ast -> ast.setFunction(new Environment.Function("area", "area", Arrays.asList(Environment.Type.DECIMAL), Environment.Type.DECIMAL, args -> Environment.NIL))),
+                        String.join(System.lineSeparator(),
+                                "double area(double radius) {",
+                                "    return 3.14 * radius * radius;",
                                 "}"
                         )
                 )
