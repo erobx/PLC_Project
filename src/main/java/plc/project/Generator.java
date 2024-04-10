@@ -52,12 +52,25 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.Declaration ast) {
-        throw new UnsupportedOperationException(); //TODO
+        print(ast.getVariable().getType().getJvmName());
+        print(" " + ast.getVariable().getJvmName());
+
+        if (ast.getValue().isPresent()) {
+            print(" = ");
+            visit(ast.getValue().get());
+        }
+
+        print(";");
+        return null;
     }
 
     @Override
     public Void visit(Ast.Statement.Assignment ast) {
-        throw new UnsupportedOperationException(); //TODO
+        visit(ast.getReceiver());
+        print(" = ");
+        visit(ast.getValue());
+        print(";");
+        return null;
     }
 
     @Override
@@ -66,35 +79,35 @@ public final class Generator implements Ast.Visitor<Void> {
         wrapParens(ast.getCondition());
         print(" {");
 
-        if (!ast.getThenStatements().isEmpty()) {
-            newline(1);
-            int[] index = {0};
-            ast.getThenStatements().forEach(stmt -> {
-                index[0]++;
-                visit(stmt);
-                if (index[0] != ast.getThenStatements().size()) {
-                    newline(1);
-                } else {
-                    newline(0);
-                }
-            });
+        if (ast.getThenStatements().isEmpty()) {
             print("}");
-        } else {
-            newline(0);
-            print("}");
+            return null;
         }
 
+        newline(++indent);
+        int[] index = {0};
+        ast.getThenStatements().forEach(stmt -> {
+            index[0]++;
+            visit(stmt);
+            if (index[0] != ast.getThenStatements().size()) {
+                newline(indent);
+            } else {
+                newline(--indent);
+            }
+        });
+        print("}");
+
+        int[] elseIndex = {0};
         if (!ast.getElseStatements().isEmpty()) {
             print(" else {");
-            newline(1);
-            int[] index = {0};
+            newline(++indent);
             ast.getElseStatements().forEach(stmt -> {
-                index[0]++;
+                elseIndex[0]++;
                 visit(stmt);
-                if (index[0] != ast.getThenStatements().size()) {
-                    newline(1);
+                if (elseIndex[0] != ast.getThenStatements().size()) {
+                    newline(indent);
                 } else {
-                    newline(0);
+                    newline(--indent);
                 }
             });
             print("}");
@@ -114,7 +127,28 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.While ast) {
-        throw new UnsupportedOperationException(); //TODO
+        print("while ");
+        wrapParens(ast.getCondition());
+        print(" {");
+        if (ast.getStatements().isEmpty()) {
+            print("}");
+            return null;
+        }
+
+        newline(++indent);
+        int[] index = {0};
+        ast.getStatements().forEach(stmt -> {
+            index[0]++;
+            visit(stmt);
+            if (index[0] != ast.getStatements().size()) {
+                newline(indent);
+            } else {
+                newline(--indent);
+            }
+        });
+        print("}");
+
+        return null;
     }
 
     @Override
