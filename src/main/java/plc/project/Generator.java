@@ -117,7 +117,7 @@ public final class Generator implements Ast.Visitor<Void> {
             print("}"); return null;
         }
 
-        printStatements(ast.getStatements());
+        printStatements(ast.getStatements(), false, false);
         print("}");
 
         return null;
@@ -164,12 +164,12 @@ public final class Generator implements Ast.Visitor<Void> {
             return null;
         }
 
-        printStatements(ast.getThenStatements());
+        printStatements(ast.getThenStatements(), false, false);
         print("}");
 
         if (!ast.getElseStatements().isEmpty()) {
             print(" else {");
-            printStatements(ast.getElseStatements());
+            printStatements(ast.getElseStatements(), false, false);
             print("}");
         }
         return null;
@@ -177,12 +177,34 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.Switch ast) {
-        throw new UnsupportedOperationException(); //TODO
+        print("switch ");
+        wrapParens(ast.getCondition());
+        print(" {");
+        indent++;
+
+        ast.getCases().forEach(this::visit);
+
+        indent--;
+        newline(indent);
+        print("}");
+        return null;
     }
 
     @Override
     public Void visit(Ast.Statement.Case ast) {
-        throw new UnsupportedOperationException(); //TODO
+        newline(indent);
+        if (ast.getValue().isPresent()) {
+            print("case ");
+            visit(ast.getValue().get());
+            print(":");
+            printStatements(ast.getStatements(), true, false);
+            print("break;");
+        } else {
+            print("default:");
+            printStatements(ast.getStatements(), false, true);
+        }
+
+        return null;
     }
 
     @Override
@@ -195,7 +217,7 @@ public final class Generator implements Ast.Visitor<Void> {
             return null;
         }
 
-        printStatements(ast.getStatements());
+        printStatements(ast.getStatements(), false, false);
         print("}");
 
         return null;
@@ -300,7 +322,7 @@ public final class Generator implements Ast.Visitor<Void> {
         });
     }
 
-    private void printStatements(List<Ast.Statement> statements) {
+    private void printStatements(List<Ast.Statement> statements, boolean isCase, boolean isDefault) {
         newline(++indent);
         int[] index = {0};
         statements.forEach(stmt -> {
@@ -308,6 +330,10 @@ public final class Generator implements Ast.Visitor<Void> {
             visit(stmt);
             if (index[0] != statements.size()) {
                 newline(indent);
+            } else if (isCase) {
+                newline(indent--);
+            } else if (isDefault) {
+                indent--;
             } else {
                 newline(--indent);
             }
