@@ -857,14 +857,13 @@ final class ParserTests {
                 ),
                 Arguments.of("Type Annotation",
                         Arrays.asList(
-                                //LET name: Type = expr;
+                                //LET name Type = expr;
                                 new Token(Token.Type.IDENTIFIER, "LET", 0),
                                 new Token(Token.Type.IDENTIFIER, "name", 4),
-                                new Token(Token.Type.OPERATOR, ":", 8),
-                                new Token(Token.Type.IDENTIFIER, "Type", 10),
-                                new Token(Token.Type.OPERATOR, "=", 15),
-                                new Token(Token.Type.IDENTIFIER, "expr", 17),
-                                new Token(Token.Type.OPERATOR, ";", 21)
+                                new Token(Token.Type.IDENTIFIER, "Type", 9),
+                                new Token(Token.Type.OPERATOR, "=", 14),
+                                new Token(Token.Type.IDENTIFIER, "expr", 16),
+                                new Token(Token.Type.OPERATOR, ";", 20)
                         ),
                         new ParseException("Missing semicolon", 8)
                 ),
