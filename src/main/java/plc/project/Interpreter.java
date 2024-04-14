@@ -3,15 +3,14 @@ package plc.project;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     private Scope scope = new Scope(null);
+
+    private Scope funcScope;
 
     public Interpreter(Scope parent) {
         scope = new Scope(parent);
@@ -47,13 +46,17 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
             throw new RuntimeException("Invalid main arity");
         }
         scope.defineFunction(ast.getName(), ast.getParameters().size(), args -> {
-            // Change scope to scope of function
-            Scope childScope = new Scope(scope);
+            scope = new Scope(scope);
 
-            // Define new variables for childScope, checking if they already exist before
             for (String p : ast.getParameters()) {
-                Environment.Variable v = childScope.lookupVariable(p);
-                childScope.defineVariable(v.getName(), v.getMutable(), v.getValue());
+                Environment.Variable v;
+                try {
+                    v = scope.lookupVariable(p);
+                } catch (Exception ex) {
+                    v = new Environment.Variable(p, true, Environment.create(args.getFirst().getValue()));
+                    args.removeFirst();
+                }
+                scope.defineVariable(v.getName(), v.getMutable(), v.getValue());
             }
 
             // Evaluate function statements => return value in Return exception if thrown or NIL if not
@@ -63,7 +66,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                 return ex.value;
             } finally {
                 // Return to parent scope
-                scope = childScope.getParent();
+                scope = scope.getParent();
             }
             return Environment.NIL;
         });
@@ -105,6 +108,10 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
                 scope.lookupVariable(receiver.getName()).setValue(Environment.create(list));
                 return Environment.NIL;
+            }
+
+            if (!scope.lookupVariable(receiver.getName()).getMutable()) {
+                throw new RuntimeException("Immutable variable");
             }
 
             scope.lookupVariable(receiver.getName()).setValue(value);
@@ -187,12 +194,16 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     public Environment.PlcObject visit(Ast.Expression.Binary ast) {
         Ast.Expression lhs = ast.getLeft();
         Ast.Expression rhs = ast.getRight();
-        Object checkClass = visit(lhs).getValue().getClass();
+        Environment.PlcObject lhsValue = visit(lhs);
+        Object checkClass = lhsValue.getValue().getClass();
         RuntimeException err = new RuntimeException("Invalid class type");
         switch (ast.getOperator()) {
             case "&&":
                 if (checkClass.equals(Boolean.class)) {
-                    Boolean leftVal = requireType(Boolean.class, visit(lhs));
+                    Boolean leftVal = requireType(Boolean.class, lhsValue);
+                    if (!leftVal) {
+                        return Environment.create(Boolean.FALSE);
+                    }
                     Boolean rightVal = requireType(Boolean.class, visit(rhs));
                     Boolean compare = leftVal.booleanValue() == rightVal.booleanValue();
                     return Environment.create(compare);
@@ -200,7 +211,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                 throw err;
             case "||":
                 if (checkClass.equals(Boolean.class)) {
-                    Boolean leftVal = requireType(Boolean.class, visit(lhs));
+                    Boolean leftVal = requireType(Boolean.class, lhsValue);
                     if (leftVal) {
                         return Environment.create(Boolean.TRUE);
                     }
@@ -213,25 +224,25 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                 throw err;
             case "<":
                 if (checkClass.equals(BigInteger.class)) {
-                    BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
+                    BigInteger leftVal = requireType(BigInteger.class, lhsValue);
                     BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
                     Boolean compare = leftVal.compareTo(rightVal) < 0;
                     return Environment.create(compare);
                 }
                 if (checkClass.equals(BigDecimal.class)) {
-                    BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
+                    BigDecimal leftVal = requireType(BigDecimal.class, lhsValue);
                     BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
                     Boolean compare = leftVal.compareTo(rightVal) < 0;
                     return Environment.create(compare);
                 }
                 if (checkClass.equals(Boolean.class)) {
-                    Boolean leftVal = requireType(Boolean.class, visit(lhs));
+                    Boolean leftVal = requireType(Boolean.class, lhsValue);
                     Boolean rightVal = requireType(Boolean.class, visit(rhs));
                     Boolean compare = leftVal.compareTo(rightVal) < 0;
                     return Environment.create(compare);
                 }
                 if (checkClass.equals(String.class)) {
-                    String leftVal = requireType(String.class, visit(lhs));
+                    String leftVal = requireType(String.class, lhsValue);
                     String rightVal = requireType(String.class, visit(rhs));
                     Boolean compare = leftVal.compareTo(rightVal) < 0;
                     return Environment.create(compare);
@@ -239,83 +250,41 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                 throw err;
             case ">":
                 if (checkClass.equals(BigInteger.class)) {
-                    BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
+                    BigInteger leftVal = requireType(BigInteger.class, lhsValue);
                     BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
                     Boolean compare = leftVal.compareTo(rightVal) > 0;
                     return Environment.create(compare);
                 }
                 if (checkClass.equals(BigDecimal.class)) {
-                    BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
+                    BigDecimal leftVal = requireType(BigDecimal.class, lhsValue);
                     BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
                     Boolean compare = leftVal.compareTo(rightVal) > 0;
                     return Environment.create(compare);
                 }
                 if (checkClass.equals(Boolean.class)) {
-                    Boolean leftVal = requireType(Boolean.class, visit(lhs));
+                    Boolean leftVal = requireType(Boolean.class, lhsValue);
                     Boolean rightVal = requireType(Boolean.class, visit(rhs));
                     Boolean compare = leftVal.compareTo(rightVal) > 0;
                     return Environment.create(compare);
                 }
                 if (checkClass.equals(String.class)) {
-                    String leftVal = requireType(String.class, visit(lhs));
+                    String leftVal = requireType(String.class, lhsValue);
                     String rightVal = requireType(String.class, visit(rhs));
                     Boolean compare = leftVal.compareTo(rightVal) > 0;
                     return Environment.create(compare);
                 }
                 throw err;
             case "==":
-                if (checkClass.equals(BigInteger.class)) {
-                    BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
-                    BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
-                    Boolean compare = leftVal.equals(rightVal);
-                    return Environment.create(compare);
-                }
-                if (checkClass.equals(BigDecimal.class)) {
-                    BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
-                    BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
-                    Boolean compare = leftVal.equals(rightVal);
-                    return Environment.create(compare);
-                }
-                if (checkClass.equals(String.class)) {
-                    String leftVal = requireType(String.class, visit(lhs));
-                    String rightVal = requireType(String.class, visit(rhs));
-                    Boolean compare = leftVal.equals(rightVal);
-                    return Environment.create(compare);
-                }
-                if (checkClass.equals(Boolean.class)) {
-                    Boolean leftVal = requireType(Boolean.class, visit(lhs));
-                    Boolean rightVal = requireType(Boolean.class, visit(rhs));
-                    Boolean compare = leftVal.equals(rightVal);
-                    return Environment.create(compare);
-                }
-                throw err;
+                return Environment.create(Objects.equals(lhsValue.getValue(), visit(rhs).getValue()));
             case "!=":
+                return Environment.create(!Objects.equals(lhsValue.getValue(), visit(rhs).getValue()));
+            case "+":
                 if (checkClass.equals(BigInteger.class)) {
-                    BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
-                    BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
-                    Boolean compare = !leftVal.equals(rightVal);
-                    return Environment.create(compare);
+                    return Environment.create(bigIntegerAdd(lhsValue, visit(rhs)));
                 }
                 if (checkClass.equals(BigDecimal.class)) {
-                    BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
-                    BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
-                    Boolean compare = !leftVal.equals(rightVal);
-                    return Environment.create(compare);
+                    return Environment.create(bigDecimalAdd(lhsValue, visit(rhs)));
                 }
-                if (checkClass.equals(String.class)) {
-                    String leftVal = requireType(String.class, visit(lhs));
-                    String rightVal = requireType(String.class, visit(rhs));
-                    Boolean compare = !leftVal.equals(rightVal);
-                    return Environment.create(compare);
-                }
-                if (checkClass.equals(Boolean.class)) {
-                    Boolean leftVal = requireType(Boolean.class, visit(lhs));
-                    Boolean rightVal = requireType(Boolean.class, visit(rhs));
-                    Boolean compare = !leftVal.equals(rightVal);
-                    return Environment.create(compare);
-                }
-                throw err;
-            case "+":
                 // If either expression is a String concat
                 if (checkClass.equals(String.class) || visit(rhs).getValue().getClass().equals(String.class)) {
                     String leftVal = visit(lhs).getValue().toString();
@@ -323,40 +292,37 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                     String concat = leftVal.concat(rightVal);
                     return Environment.create(concat);
                 }
-                if (checkClass.equals(BigInteger.class)) {
-                    return Environment.create(bigIntegerAdd(lhs, rhs));
-                }
-                if (checkClass.equals(BigDecimal.class)) {
-                    return Environment.create(bigDecimalAdd(lhs, rhs));
-                }
                 throw err;
             case "-":
                 if (checkClass.equals(BigInteger.class)) {
-                    return Environment.create(bigIntegerSub(lhs, rhs));
+                    return Environment.create(bigIntegerSub(lhsValue, visit(rhs)));
                 }
                 if (checkClass.equals(BigDecimal.class)) {
-                    return Environment.create(bigDecimalSub(lhs, rhs));
+                    return Environment.create(bigDecimalSub(lhsValue, visit(rhs)));
                 }
                 throw err;
             case "*":
                 if (checkClass.equals(BigInteger.class)) {
-                   return Environment.create(bigIntegerMult(lhs, rhs));
+                   return Environment.create(bigIntegerMult(lhsValue, visit(rhs)));
                 }
                 if (checkClass.equals(BigDecimal.class)) {
-                    return Environment.create(bigDecimalMult(lhs, rhs));
+                    return Environment.create(bigDecimalMult(lhsValue, visit(rhs)));
                 }
                 throw err;
             case "/":
-                if (checkClass.equals(BigInteger.class)) {
-                    return Environment.create(bigIntegerDiv(lhs, rhs));
+                try {
+                    if (checkClass.equals(BigInteger.class)) {
+                        return Environment.create(bigIntegerDiv(lhsValue, visit(rhs)));
+                    }
+                    if (checkClass.equals(BigDecimal.class)) {
+                        return Environment.create(bigDecimalDiv(lhsValue, visit(rhs)));
+                    }
+                } catch (ArithmeticException ex) {
+                    throw new RuntimeException(ex.getMessage());
                 }
-                if (checkClass.equals(BigDecimal.class)) {
-                    return Environment.create(bigDecimalDiv(lhs, rhs));
-                }
-                throw err;
             case "^":
                 if (checkClass.equals(BigInteger.class)) {
-                    return Environment.create(bigIntegerExp(lhs, rhs));
+                    return Environment.create(bigIntegerExp(lhsValue, visit(rhs)));
                 }
                 throw err;
             default:
@@ -364,57 +330,57 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         }
     }
 
-    private BigInteger bigIntegerAdd(Ast.Expression lhs, Ast.Expression rhs) {
-        BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
-        BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+    private BigInteger bigIntegerAdd(Environment.PlcObject lhs, Environment.PlcObject rhs) {
+        BigInteger leftVal = requireType(BigInteger.class, lhs);
+        BigInteger rightVal = requireType(BigInteger.class, rhs);
         return leftVal.add(rightVal);
     }
 
-    private BigInteger bigIntegerSub(Ast.Expression lhs, Ast.Expression rhs) {
-        BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
-        BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+    private BigInteger bigIntegerSub(Environment.PlcObject lhs, Environment.PlcObject rhs) {
+        BigInteger leftVal = requireType(BigInteger.class, lhs);
+        BigInteger rightVal = requireType(BigInteger.class, rhs);
         return leftVal.subtract(rightVal);
     }
 
-    private BigInteger bigIntegerMult(Ast.Expression lhs, Ast.Expression rhs) {
-        BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
-        BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+    private BigInteger bigIntegerMult(Environment.PlcObject lhs, Environment.PlcObject rhs) {
+        BigInteger leftVal = requireType(BigInteger.class, lhs);
+        BigInteger rightVal = requireType(BigInteger.class, rhs);
         return leftVal.multiply(rightVal);
     }
 
-    private BigInteger bigIntegerDiv(Ast.Expression lhs, Ast.Expression rhs) {
-        BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
-        BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+    private BigInteger bigIntegerDiv(Environment.PlcObject lhs, Environment.PlcObject rhs) {
+        BigInteger leftVal = requireType(BigInteger.class, lhs);
+        BigInteger rightVal = requireType(BigInteger.class, rhs);
         return leftVal.divide(rightVal);
     }
 
-    private BigInteger bigIntegerExp(Ast.Expression lhs, Ast.Expression rhs) {
-        BigInteger leftVal = requireType(BigInteger.class, visit(lhs));
-        BigInteger rightVal = requireType(BigInteger.class, visit(rhs));
+    private BigInteger bigIntegerExp(Environment.PlcObject lhs, Environment.PlcObject rhs) {
+        BigInteger leftVal = requireType(BigInteger.class, lhs);
+        BigInteger rightVal = requireType(BigInteger.class, rhs);
         return leftVal.pow(rightVal.intValue());
     }
 
-    private BigDecimal bigDecimalAdd(Ast.Expression lhs, Ast.Expression rhs) {
-        BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
-        BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
+    private BigDecimal bigDecimalAdd(Environment.PlcObject lhs, Environment.PlcObject rhs) {
+        BigDecimal leftVal = requireType(BigDecimal.class, lhs);
+        BigDecimal rightVal = requireType(BigDecimal.class, rhs);
         return leftVal.add(rightVal);
     }
 
-    private BigDecimal bigDecimalSub(Ast.Expression lhs, Ast.Expression rhs) {
-        BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
-        BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
+    private BigDecimal bigDecimalSub(Environment.PlcObject lhs, Environment.PlcObject rhs) {
+        BigDecimal leftVal = requireType(BigDecimal.class, lhs);
+        BigDecimal rightVal = requireType(BigDecimal.class, rhs);
         return leftVal.subtract(rightVal);
     }
 
-    private BigDecimal bigDecimalMult(Ast.Expression lhs, Ast.Expression rhs) {
-        BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
-        BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
+    private BigDecimal bigDecimalMult(Environment.PlcObject lhs, Environment.PlcObject rhs) {
+        BigDecimal leftVal = requireType(BigDecimal.class, lhs);
+        BigDecimal rightVal = requireType(BigDecimal.class, rhs);
         return leftVal.multiply(rightVal);
     }
 
-    private BigDecimal bigDecimalDiv(Ast.Expression lhs, Ast.Expression rhs) {
-        BigDecimal leftVal = requireType(BigDecimal.class, visit(lhs));
-        BigDecimal rightVal = requireType(BigDecimal.class, visit(rhs));
+    private BigDecimal bigDecimalDiv(Environment.PlcObject lhs, Environment.PlcObject rhs) {
+        BigDecimal leftVal = requireType(BigDecimal.class, lhs);
+        BigDecimal rightVal = requireType(BigDecimal.class, rhs);
         return leftVal.divide(rightVal, RoundingMode.HALF_EVEN);
     }
 
@@ -446,17 +412,12 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     @Override
     public Environment.PlcObject visit(Ast.Expression.Function ast) {
         List<Ast.Expression> args = ast.getArguments();
-        if (args.isEmpty()) {
-            return Environment.create(ast.getName());
-        }
-
         Environment.Function func = scope.lookupFunction(ast.getName(), ast.getArguments().size());
-        List< Environment.PlcObject> invokeArgs = new ArrayList<>();
+        List<Environment.PlcObject> invokeArgs = new ArrayList<>();
         for (Ast.Expression exp : args) {
             invokeArgs.add(visit(exp));
         }
         Environment.PlcObject funcValue = func.invoke(invokeArgs);
-
         return Environment.create(funcValue.getValue());
     }
 

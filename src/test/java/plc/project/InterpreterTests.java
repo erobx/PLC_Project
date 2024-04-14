@@ -8,6 +8,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -150,6 +151,114 @@ final class InterpreterTests {
         }
     }
 
+    @Test
+    void testExpressionStatementAddition() {
+        // log(1) + log(2);
+        Scope scope = new Scope(null);
+        StringWriter writer = new StringWriter();
+        scope.defineFunction("log", 1, args -> {
+            writer.write(String.valueOf(args.get(0).getValue()));
+            return args.get(0);
+        });
+
+        test(new Ast.Statement.Expression(
+                new Ast.Expression.Binary("+",
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE))),
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.valueOf(2)))
+        ))), Environment.NIL.getValue(), scope);
+        Assertions.assertEquals("12", writer.toString());
+    }
+
+    @Test
+    void testExpressionStatementSubtraction() {
+        // log(1) - log(2);
+        Scope scope = new Scope(null);
+        StringWriter writer = new StringWriter();
+        scope.defineFunction("log", 1, args -> {
+            writer.write(String.valueOf(args.get(0).getValue()));
+            return args.get(0);
+        });
+
+        test(new Ast.Statement.Expression(
+                new Ast.Expression.Binary("-",
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE))),
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.valueOf(2)))
+                        ))), Environment.NIL.getValue(), scope);
+        Assertions.assertEquals("12", writer.toString());
+    }
+
+    @Test
+    void testExpressionStatementMultiplication() {
+        // log(1) * log(2);
+        Scope scope = new Scope(null);
+        StringWriter writer = new StringWriter();
+        scope.defineFunction("log", 1, args -> {
+            writer.write(String.valueOf(args.get(0).getValue()));
+            return args.get(0);
+        });
+
+        test(new Ast.Statement.Expression(
+                new Ast.Expression.Binary("*",
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE))),
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.valueOf(2)))
+                        ))), Environment.NIL.getValue(), scope);
+        Assertions.assertEquals("12", writer.toString());
+    }
+
+    @Test
+    void testExpressionStatementDivision() {
+        // log(1) / log(2);
+        Scope scope = new Scope(null);
+        StringWriter writer = new StringWriter();
+        scope.defineFunction("log", 1, args -> {
+            writer.write(String.valueOf(args.get(0).getValue()));
+            return args.get(0);
+        });
+
+        test(new Ast.Statement.Expression(
+                new Ast.Expression.Binary("/",
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE))),
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.valueOf(2)))
+                        ))), Environment.NIL.getValue(), scope);
+        Assertions.assertEquals("12", writer.toString());
+    }
+
+    @Test
+    void testExpressionStatementExp() {
+        // log(1) ^ log(2);
+        Scope scope = new Scope(null);
+        StringWriter writer = new StringWriter();
+        scope.defineFunction("log", 1, args -> {
+            writer.write(String.valueOf(args.get(0).getValue()));
+            return args.get(0);
+        });
+
+        test(new Ast.Statement.Expression(
+                new Ast.Expression.Binary("^",
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE))),
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.valueOf(2)))
+                        ))), Environment.NIL.getValue(), scope);
+        Assertions.assertEquals("12", writer.toString());
+    }
+
+    @Test
+    void testExpressionStatementGT() {
+        // log(1) > log(2);
+        Scope scope = new Scope(null);
+        StringWriter writer = new StringWriter();
+        scope.defineFunction("log", 1, args -> {
+            writer.write(String.valueOf(args.get(0).getValue()));
+            return args.get(0);
+        });
+
+        test(new Ast.Statement.Expression(
+                new Ast.Expression.Binary(">",
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE))),
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.valueOf(2)))
+                        ))), Environment.NIL.getValue(), scope);
+        Assertions.assertEquals("12", writer.toString());
+    }
+
     @ParameterizedTest
     @MethodSource
     void testDeclarationStatement(String test, Ast.Statement.Declaration ast, Object expected) {
@@ -182,6 +291,20 @@ final class InterpreterTests {
                 new Ast.Expression.Literal(BigInteger.ONE)
         ), Environment.NIL.getValue(), scope);
         Assertions.assertEquals(BigInteger.ONE, scope.lookupVariable("variable").getValue().getValue());
+    }
+
+    @Test
+    void testImmutableAssignment() {
+        // immutable = 10;
+        Scope scope = new Scope(null);
+        scope.defineVariable("immutable", false, Environment.NIL);
+        RuntimeException ex = Assertions.assertThrows(RuntimeException.class, () ->
+            test(new Ast.Statement.Assignment(
+                    new Ast.Expression.Access(Optional.empty(), "immutable"),
+                    new Ast.Expression.Literal(BigInteger.TEN)
+            ), Environment.NIL.getValue(), scope)
+        );
+        Assertions.assertEquals("java.lang.RuntimeException: Immutable variable", ex.getMessage());
     }
 
     @Test
@@ -438,6 +561,38 @@ final class InterpreterTests {
                                 new Ast.Expression.Literal(new BigDecimal("3.4"))
                         ),
                         new BigDecimal("0.4")
+                ),
+                // FALSE && undefined
+                Arguments.of("And (Short Circuit)",
+                        new Ast.Expression.Binary("&&",
+                                new Ast.Expression.Literal(Boolean.FALSE),
+                                new Ast.Expression.Access(Optional.empty(), "undefined")
+                        ),
+                        false
+                ),
+                // NIL == NIL
+                Arguments.of("Nil Equals",
+                        new Ast.Expression.Binary("==",
+                                new Ast.Expression.Literal(null),
+                                new Ast.Expression.Literal(null)
+                        ),
+                        true
+                ),
+                // 1 != 10
+                Arguments.of("Not Equal",
+                        new Ast.Expression.Binary("!=",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigInteger.TEN)
+                        ),
+                        true
+                ),
+                // 1 != "1"
+                Arguments.of("Distinct Types",
+                        new Ast.Expression.Binary("!=",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal("1")
+                        ),
+                        true
                 )
         );
     }
@@ -665,6 +820,154 @@ final class InterpreterTests {
         test(src, expected, new Scope(null));
     }
 
+    @Test
+    void testSimpleArgument() {
+    /*
+    FUN func(x) DO
+        log(x);
+    END
+    FUN main() DO
+        func(10);
+    END
+     */
+
+        List<Ast.Function> functions = Arrays.asList(
+                new Ast.Function("main", Arrays.asList(), Arrays.asList(
+                        new Ast.Statement.Expression(new Ast.Expression.Function("func", Arrays.asList(new Ast.Expression.Literal(BigInteger.TEN))))
+                )),
+                new Ast.Function("func", Arrays.asList("x"), Arrays.asList(
+                        new Ast.Statement.Expression(new Ast.Expression.Function("log", Arrays.asList(
+                                new Ast.Expression.Access(Optional.empty(), "x")
+                        )))
+                ))
+        );
+
+        Scope scope = new Scope(null);
+        StringBuilder builder = new StringBuilder();
+        scope.defineFunction("log", 1, args -> {
+            builder.append(args.get(0).getValue());
+            return args.get(0);
+        });
+
+        Ast.Source src = new Ast.Source(Arrays.asList(), functions);
+
+        test(src, Environment.NIL.getValue(), scope);
+        Assertions.assertEquals("10", builder.toString());
+    }
+
+    @Test
+    void testMultipleArguments() {
+    /*
+    FUN func(x, y, z) DO
+        log(x);
+        log(y);
+        log(z);
+    END
+    FUN main() DO
+        func(0, 1, 10);
+    END
+     */
+
+        List<Ast.Function> functions = Arrays.asList(
+                new Ast.Function("main", Arrays.asList(), Arrays.asList(
+                        new Ast.Statement.Expression(new Ast.Expression.Function("func", Arrays.asList(
+                                new Ast.Expression.Literal(BigInteger.ZERO), new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigInteger.TEN)
+                        )))
+                )),
+                new Ast.Function("func", Arrays.asList("x", "y", "z"), Arrays.asList(
+                        new Ast.Statement.Expression(new Ast.Expression.Function("log", Arrays.asList(
+                                new Ast.Expression.Access(Optional.empty(), "x")
+                        ))),
+                        new Ast.Statement.Expression(new Ast.Expression.Function("log", Arrays.asList(
+                                new Ast.Expression.Access(Optional.empty(), "y")
+                        ))),
+                        new Ast.Statement.Expression(new Ast.Expression.Function("log", Arrays.asList(
+                                new Ast.Expression.Access(Optional.empty(), "z")
+                        )))
+                ))
+        );
+
+        Scope scope = new Scope(null);
+        StringBuilder builder = new StringBuilder();
+        scope.defineFunction("log", 1, args -> {
+            builder.append(args.get(0).getValue());
+            return args.get(0);
+        });
+
+        Ast.Source src = new Ast.Source(Arrays.asList(), functions);
+
+        test(src, Environment.NIL.getValue(), scope);
+        Assertions.assertEquals("0110", builder.toString());
+    }
+
+    @Test
+    void testSumList() {
+    /*
+    VAL len = 5;
+    LIST list = [1, 2, 3, 4, 5];
+    FUN main() DO
+        LET total = 0;
+        LET i = 0;
+        WHILE i < len DO
+            total = total + list[i];
+            i = i + 1;
+        END
+        RETURN total;
+    END
+     */
+        List<Ast.Expression> values = Arrays.asList(
+                new Ast.Expression.Literal(BigInteger.ONE),
+                new Ast.Expression.Literal(BigInteger.valueOf(2)),
+                new Ast.Expression.Literal(BigInteger.valueOf(3)),
+                new Ast.Expression.Literal(BigInteger.valueOf(4)),
+                new Ast.Expression.Literal(BigInteger.valueOf(5))
+        );
+        Optional<Ast.Expression> value = Optional.of(new Ast.Expression.PlcList(values));
+
+        List<Ast.Global> globals = Arrays.asList(
+                new Ast.Global("len", false, Optional.of(new Ast.Expression.Literal(BigInteger.valueOf(5)))),
+                new Ast.Global("list", true, value)
+        );
+
+        List<Ast.Statement> statements = Arrays.asList(
+                new Ast.Statement.Declaration("total", Optional.of(new Ast.Expression.Literal(BigInteger.ZERO))),
+                new Ast.Statement.Declaration("i", Optional.of(new Ast.Expression.Literal(BigInteger.ZERO))),
+                new Ast.Statement.While(
+                        new Ast.Expression.Binary("<",
+                            new Ast.Expression.Access(Optional.empty(), "i"),
+                            new Ast.Expression.Access(Optional.empty(), "len")
+                        ),
+                        Arrays.asList(
+                                new Ast.Statement.Assignment(
+                                        new Ast.Expression.Access(Optional.empty(), "total"),
+                                        new Ast.Expression.Binary("+",
+                                                new Ast.Expression.Access(Optional.empty(), "total"),
+                                                new Ast.Expression.Access(Optional.of(new Ast.Expression.Access(Optional.empty(), "i")), "list")
+                                        )
+                                ),
+                                new Ast.Statement.Assignment(
+                                        new Ast.Expression.Access(Optional.empty(), "i"),
+                                        new Ast.Expression.Binary("+",
+                                                new Ast.Expression.Access(Optional.empty(), "i"),
+                                                new Ast.Expression.Literal(BigInteger.ONE)
+                                        )
+                                )
+                        )
+                ),
+                new Ast.Statement.Return(new Ast.Expression.Access(Optional.empty(), "total"))
+        );
+
+        List<Ast.Function> functions = Arrays.asList(
+                new Ast.Function("main", Arrays.asList(), statements)
+        );
+
+        Ast.Source src = new Ast.Source(globals, functions);
+        Object expected = BigInteger.valueOf(15);
+
+        test(src, expected, new Scope(null));
+    }
+
     @ParameterizedTest
     @MethodSource
     void testRuntimes(String test, Scope scope, List<Ast> asts, RuntimeException expected) {
@@ -702,6 +1005,22 @@ final class InterpreterTests {
                                 new Ast.Function("main", Arrays.asList("y"), Arrays.asList())
                         ),
                         new RuntimeException("Invalid main arity")
+                ),
+                // 1 / 0
+                Arguments.of("Divide By Zero",
+                        new Scope(null),
+                        Arrays.asList(new Ast.Expression.Binary("/",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigInteger.ZERO)
+                        )),
+                        new RuntimeException("BigInteger divide by zero")
+                ),
+                Arguments.of("Undefined Function",
+                        new Scope(null),
+                        Arrays.asList(
+                                new Ast.Expression.Function("undefined", Arrays.asList())
+                        ),
+                        new RuntimeException("The function undefined/0 is not defined in this scope.")
                 )
         );
     }
