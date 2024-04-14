@@ -809,6 +809,73 @@ final class InterpreterTests {
         Assertions.assertEquals("0110", builder.toString());
     }
 
+    @Test
+    void testSumList() {
+    /*
+    VAL len = 5;
+    LIST list = [1, 2, 3, 4, 5];
+    FUN main() DO
+        LET total = 0;
+        LET i = 0;
+        WHILE i < len DO
+            total = total + list[i];
+            i = i + 1;
+        END
+        RETURN total;
+    END
+     */
+        List<Ast.Expression> values = Arrays.asList(
+                new Ast.Expression.Literal(BigInteger.ONE),
+                new Ast.Expression.Literal(BigInteger.valueOf(2)),
+                new Ast.Expression.Literal(BigInteger.valueOf(3)),
+                new Ast.Expression.Literal(BigInteger.valueOf(4)),
+                new Ast.Expression.Literal(BigInteger.valueOf(5))
+        );
+        Optional<Ast.Expression> value = Optional.of(new Ast.Expression.PlcList(values));
+
+        List<Ast.Global> globals = Arrays.asList(
+                new Ast.Global("len", false, Optional.of(new Ast.Expression.Literal(BigInteger.valueOf(5)))),
+                new Ast.Global("list", true, value)
+        );
+
+        List<Ast.Statement> statements = Arrays.asList(
+                new Ast.Statement.Declaration("total", Optional.of(new Ast.Expression.Literal(BigInteger.ZERO))),
+                new Ast.Statement.Declaration("i", Optional.of(new Ast.Expression.Literal(BigInteger.ZERO))),
+                new Ast.Statement.While(
+                        new Ast.Expression.Binary("<",
+                            new Ast.Expression.Access(Optional.empty(), "i"),
+                            new Ast.Expression.Access(Optional.empty(), "len")
+                        ),
+                        Arrays.asList(
+                                new Ast.Statement.Assignment(
+                                        new Ast.Expression.Access(Optional.empty(), "total"),
+                                        new Ast.Expression.Binary("+",
+                                                new Ast.Expression.Access(Optional.empty(), "total"),
+                                                new Ast.Expression.Access(Optional.of(new Ast.Expression.Access(Optional.empty(), "i")), "list")
+                                        )
+                                ),
+                                new Ast.Statement.Assignment(
+                                        new Ast.Expression.Access(Optional.empty(), "i"),
+                                        new Ast.Expression.Binary("+",
+                                                new Ast.Expression.Access(Optional.empty(), "i"),
+                                                new Ast.Expression.Literal(BigInteger.ONE)
+                                        )
+                                )
+                        )
+                ),
+                new Ast.Statement.Return(new Ast.Expression.Access(Optional.empty(), "total"))
+        );
+
+        List<Ast.Function> functions = Arrays.asList(
+                new Ast.Function("main", Arrays.asList(), statements)
+        );
+
+        Ast.Source src = new Ast.Source(globals, functions);
+        Object expected = BigInteger.valueOf(15);
+
+        test(src, expected, new Scope(null));
+    }
+
     @ParameterizedTest
     @MethodSource
     void testRuntimes(String test, Scope scope, List<Ast> asts, RuntimeException expected) {
@@ -849,11 +916,19 @@ final class InterpreterTests {
                 ),
                 // 1 / 0
                 Arguments.of("Divide By Zero",
-                        new Ast.Expression.Binary("/",
+                        new Scope(null),
+                        Arrays.asList(new Ast.Expression.Binary("/",
                                 new Ast.Expression.Literal(BigInteger.ONE),
                                 new Ast.Expression.Literal(BigInteger.ZERO)
-                        ),
+                        )),
                         new RuntimeException("BigInteger divide by zero")
+                ),
+                Arguments.of("Undefined Function",
+                        new Scope(null),
+                        Arrays.asList(
+                                new Ast.Expression.Function("undefined", Arrays.asList())
+                        ),
+                        new RuntimeException("The function undefined/0 is not defined in this scope.")
                 )
         );
     }

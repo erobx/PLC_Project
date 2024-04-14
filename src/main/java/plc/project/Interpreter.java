@@ -411,17 +411,12 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     @Override
     public Environment.PlcObject visit(Ast.Expression.Function ast) {
         List<Ast.Expression> args = ast.getArguments();
-        if (args.isEmpty()) {
-            return Environment.create(ast.getName());
-        }
-
         Environment.Function func = scope.lookupFunction(ast.getName(), ast.getArguments().size());
-        List< Environment.PlcObject> invokeArgs = new ArrayList<>();
+        List<Environment.PlcObject> invokeArgs = new ArrayList<>();
         for (Ast.Expression exp : args) {
             invokeArgs.add(visit(exp));
         }
         Environment.PlcObject funcValue = func.invoke(invokeArgs);
-
         return Environment.create(funcValue.getValue());
     }
 
