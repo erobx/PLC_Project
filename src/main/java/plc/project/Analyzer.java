@@ -275,7 +275,14 @@ public final class Analyzer implements Ast.Visitor<Void> {
                 break;
             case "<", ">", "==", "!=":
                 RuntimeException ex = new RuntimeException("Unexpected type");
-                if (leftType.equals(Environment.Type.INTEGER)) {
+                requireAssignable(Environment.Type.COMPARABLE, leftType);
+                requireAssignable(Environment.Type.COMPARABLE, rightType);
+
+                if (leftType.equals(Environment.Type.COMPARABLE)) {
+                    if (!rightType.equals(Environment.Type.COMPARABLE)) {
+                        throw ex;
+                    }
+                } else if (leftType.equals(Environment.Type.INTEGER)) {
                     if (!rightType.equals(Environment.Type.INTEGER)) {
                         throw ex;
                     }
@@ -389,6 +396,8 @@ public final class Analyzer implements Ast.Visitor<Void> {
         // Comparable
         if (target.getName().equals(Environment.Type.COMPARABLE.getName())) {
             switch (type.getName()) {
+                case "Comparable":
+                    return;
                 case "Integer":
                     return;
                 case "Decimal":

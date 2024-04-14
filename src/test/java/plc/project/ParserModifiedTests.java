@@ -6,6 +6,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -101,6 +102,53 @@ final class ParserModifiedTests {
                                 ))
                             )
                         )
+                ),
+                Arguments.of("Baseline Function",
+                        Arrays.asList(
+                                //FUN name() DO stmt; END
+                                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "(", 8),
+                                new Token(Token.Type.OPERATOR, ")", 9),
+                                new Token(Token.Type.IDENTIFIER, "DO", 11),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 14),
+                                new Token(Token.Type.OPERATOR, ";", 18),
+                                new Token(Token.Type.IDENTIFIER, "END", 20)
+                        ),
+                        new Ast.Source(
+                                Arrays.asList(),
+                                Arrays.asList(new Ast.Function("name", Arrays.asList(), Arrays.asList(), Optional.empty(), Arrays.asList(
+                                        new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt"))
+                                )))
+                        )
+                ),
+                Arguments.of("Global Function",
+                        Arrays.asList(
+                                //VAL name: Type = expr; FUN name() DO stmt; END
+                                new Token(Token.Type.IDENTIFIER, "VAL", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, ":", 8),
+                                new Token(Token.Type.IDENTIFIER, "Type", 10),
+                                new Token(Token.Type.OPERATOR, "=", 15),
+                                new Token(Token.Type.IDENTIFIER, "expr", 17),
+                                new Token(Token.Type.OPERATOR, ";", 21),
+                                new Token(Token.Type.IDENTIFIER, "FUN", 23),
+                                new Token(Token.Type.IDENTIFIER, "name", 27),
+                                new Token(Token.Type.OPERATOR, "(", 31),
+                                new Token(Token.Type.OPERATOR, ")", 32),
+                                new Token(Token.Type.IDENTIFIER, "DO", 34),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 37),
+                                new Token(Token.Type.OPERATOR, ";", 41),
+                                new Token(Token.Type.IDENTIFIER, "END", 43)
+                        ),
+                        new Ast.Source(
+                                Arrays.asList(new Ast.Global("name", "Type", false, Optional.of(
+                                        new Ast.Expression.Access(Optional.empty(), "expr")))
+                                ),
+                                Arrays.asList(new Ast.Function("name", Arrays.asList(), Arrays.asList(), Optional.empty(), Arrays.asList(
+                                        new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt"))
+                                )))
+                        )
                 )
         );
     }
@@ -155,6 +203,19 @@ final class ParserModifiedTests {
                                 new Token(Token.Type.OPERATOR, ";", 15)
                         ),
                         new Ast.Statement.Declaration("name", Optional.empty(), Optional.of(new Ast.Expression.Access(Optional.empty(), "expr")))
+                ),
+                Arguments.of("Definition and Initialization",
+                        Arrays.asList(
+                                // LET name: Type = expr;
+                                new Token(Token.Type.IDENTIFIER, "LET", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, ":", 8),
+                                new Token(Token.Type.IDENTIFIER, "Type", 10),
+                                new Token(Token.Type.OPERATOR, "=", 15),
+                                new Token(Token.Type.IDENTIFIER, "expr", 17),
+                                new Token(Token.Type.OPERATOR, ";", 21)
+                        ),
+                        new Ast.Statement.Declaration("name", Optional.of("Type"), Optional.of(new Ast.Expression.Access(Optional.empty(),"expr")))
                 )
         );
     }

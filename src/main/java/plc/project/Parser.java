@@ -46,7 +46,7 @@ public final class Parser {
                     throw new ParseException("Function Before Global", getErrIndex());
                 }
             }
-            if (match("FUN")) {
+            if (peek("FUN")) {
                 Ast.Function fn = parseFunction();
                 functions.add(fn);
                 flag = true;
@@ -168,6 +168,7 @@ public final class Parser {
      * next tokens start a method, aka {@code FUN}.
      */
     public Ast.Function parseFunction() throws ParseException {
+        match("FUN");
         String name = getIdentifier();
         if (!match("(")) {
             throw new ParseException("Missing (", getErrIndex());
@@ -199,9 +200,7 @@ public final class Parser {
 
         // (':' identifier)?
         Optional<String> returnTypeName = Optional.empty();
-        boolean flag = false;
         if (match(":")) {
-            flag = true;
             String type = getIdentifier();
             returnTypeName = Optional.of(type);
         }
@@ -211,11 +210,7 @@ public final class Parser {
         }
         List<Ast.Statement> statements = parseBlock();
 
-        if (!paramTypeNames.isEmpty() && !flag) {
-            return new Ast.Function(name, params, paramTypeNames, returnTypeName, statements);
-        }
-
-        return flag ? new Ast.Function(name, params, paramTypeNames, returnTypeName, statements) : new Ast.Function(name, params, statements);
+        return new Ast.Function(name, params, paramTypeNames, returnTypeName, statements);
     }
 
     /**
@@ -300,7 +295,7 @@ public final class Parser {
 
         if (match("=")) {
             Ast.Expression right = parseExpression();
-            dec =  new Ast.Statement.Declaration(name, Optional.empty(), Optional.of(right));
+            dec =  new Ast.Statement.Declaration(name, dec.getTypeName(), Optional.of(right));
         }
 
         if (!match(";")) {

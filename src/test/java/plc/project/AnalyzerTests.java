@@ -5,6 +5,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import javax.swing.text.html.Option;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -206,6 +207,31 @@ public final class AnalyzerTests {
                         new Ast.Function("empty", Arrays.asList(), Arrays.asList(), Optional.empty(), Arrays.asList()),
                         init(new Ast.Function("empty", Arrays.asList(), Arrays.asList(), Optional.empty(), Arrays.asList()),
                                 ast -> ast.setFunction(new Environment.Function("empty", "empty", Arrays.asList(), Environment.Type.NIL, args -> Environment.NIL))
+                        )
+                ),
+                Arguments.of("Valid Parameter Use",
+                        // FUN func(x: Integer): Nil DO print(x + 1); END
+                        new Ast.Function("func", Arrays.asList("x"), Arrays.asList("Integer"), Optional.of("Nil"), Arrays.asList(
+                                new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(
+                                        new Ast.Expression.Binary("+",
+                                                new Ast.Expression.Access(Optional.empty(), "x"),
+                                                new Ast.Expression.Literal(BigInteger.ONE)
+                                        )
+                                )))
+                        )),
+                        init(new Ast.Function("func", Arrays.asList("x"), Arrays.asList("Integer"), Optional.of("Nil"), Arrays.asList(
+                                new Ast.Statement.Expression(
+                                        init(new Ast.Expression.Function("print", Arrays.asList(
+                                                init(new Ast.Expression.Binary("+",
+                                                        init(new Ast.Expression.Access(Optional.empty(), "x"),
+                                                                ast -> ast.setVariable(new Environment.Variable("x", "x", Environment.Type.INTEGER, true, Environment.create(BigInteger.ONE)))
+                                                        ),
+                                                        init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))
+                                                ), ast -> ast.setType(Environment.Type.INTEGER))
+                                            )), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.NIL), Environment.Type.NIL, args -> Environment.NIL))
+                                        )
+                                )
+                            )), ast -> ast.setFunction(new Environment.Function("func", "func", Arrays.asList(Environment.Type.INTEGER), Environment.Type.NIL, args -> Environment.NIL))
                         )
                 )
         );
@@ -669,7 +695,10 @@ public final class AnalyzerTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     public void testBinaryExpression(String test, Ast.Expression.Binary ast, Ast.Expression.Binary expected) {
-        test(ast, expected, new Scope(null));
+        test(ast, expected,
+                init(new Scope(null), scope -> {
+                    scope.defineVariable("comparable", "comparable", Environment.Type.COMPARABLE, true, Environment.NIL);
+                }));
     }
 
     private static Stream<Arguments> testBinaryExpression() {
@@ -744,6 +773,17 @@ public final class AnalyzerTests {
                                 init(new Ast.Expression.Literal(BigInteger.valueOf(2)), ast -> ast.setType(Environment.Type.INTEGER)),
                                 init(new Ast.Expression.Literal(BigInteger.TEN), ast -> ast.setType(Environment.Type.INTEGER))
                         ), ast -> ast.setType(Environment.Type.INTEGER))
+                ),
+                Arguments.of("GT Comparable",
+                        // comparable > comparable
+                        new Ast.Expression.Binary(">",
+                                new Ast.Expression.Access(Optional.empty(), "comparable"),
+                                new Ast.Expression.Access(Optional.empty(), "comparable")
+                        ),
+                        init(new Ast.Expression.Binary(">",
+                                init(new Ast.Expression.Access(Optional.empty(), "comparable"), ast -> ast.setVariable(new Environment.Variable("comparable", "comparable", Environment.Type.COMPARABLE, true, Environment.NIL))),
+                                init(new Ast.Expression.Access(Optional.empty(), "comparable"), ast -> ast.setVariable(new Environment.Variable("comparable", "comparable", Environment.Type.COMPARABLE, true, Environment.NIL)))
+                        ), ast -> ast.setType(Environment.Type.BOOLEAN))
                 )
         );
     }
@@ -768,11 +808,15 @@ public final class AnalyzerTests {
                 Arguments.of("Valid List",
                         // list[1]
                         new Ast.Expression.Access(Optional.of(new Ast.Expression.Literal(BigInteger.ONE)), "list"),
-                        init(new Ast.Expression.Access(Optional.of(init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))), "list"),
+                        init(new Ast.Expression.Access(Optional.of(
+                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))), "list"),
                                 ast -> ast.setVariable(new Environment.Variable("list", "list",
-                                        Environment.Type.INTEGER, true, Environment.create(new Ast.Expression.PlcList(
-                                                Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE), new Ast.Expression.Literal(BigInteger.TEN))
-                        )))))
+                                        Environment.Type.INTEGER, true, Environment.create(
+                                                init(new Ast.Expression.PlcList(Arrays.asList(
+                                                        init(new Ast.Expression.Literal(BigInteger.ONE), as -> as.setType(Environment.Type.INTEGER)),
+                                                        init(new Ast.Expression.Literal(BigInteger.TEN), as -> as.setType(Environment.Type.INTEGER))
+                                                )), as -> as.setType(Environment.Type.INTEGER)))))
+                        )
                 ),
                 Arguments.of("Invalid List",
                         // list["c"]
