@@ -70,6 +70,18 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
         try {
             scope = new Scope(scope);
+            // Declare variables for use
+            for (int i = 0; i < ast.getParameters().size(); i++) {
+                Environment.Variable var;
+                try {
+                    var = scope.lookupVariable(ast.getParameters().get(i));
+                } catch (Exception ex) {
+                    var = new Environment.Variable(ast.getParameters().get(i), ast.getParameters().get(i),
+                            Environment.getType(ast.getParameterTypeNames().get(i)), true, Environment.NIL
+                    );
+                }
+                scope.defineVariable(var.getName(), var.getJvmName(), var.getType(), var.getMutable(), var.getValue());
+            }
             ast.getStatements().forEach(this::visit);
         } finally {
             scope = scope.getParent();

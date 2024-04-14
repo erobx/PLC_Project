@@ -224,14 +224,50 @@ public final class AnalyzerTests {
                                         init(new Ast.Expression.Function("print", Arrays.asList(
                                                 init(new Ast.Expression.Binary("+",
                                                         init(new Ast.Expression.Access(Optional.empty(), "x"),
-                                                                ast -> ast.setVariable(new Environment.Variable("x", "x", Environment.Type.INTEGER, true, Environment.create(BigInteger.ONE)))
+                                                                ast -> ast.setVariable(new Environment.Variable("x", "x", Environment.Type.INTEGER, true, Environment.NIL))
                                                         ),
                                                         init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))
                                                 ), ast -> ast.setType(Environment.Type.INTEGER))
-                                            )), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.NIL), Environment.Type.NIL, args -> Environment.NIL))
+                                            )), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL))
                                         )
                                 )
                             )), ast -> ast.setFunction(new Environment.Function("func", "func", Arrays.asList(Environment.Type.INTEGER), Environment.Type.NIL, args -> Environment.NIL))
+                        )
+                ),
+                Arguments.of("Multi Parameter Use",
+                        // FUN func(x: Integer, y: Integer, z: Integer): Nil DO print(x + y + z); END
+                        new Ast.Function("func", Arrays.asList("x", "y", "z"), Arrays.asList("Integer", "Integer", "Integer"), Optional.of("Nil"), Arrays.asList(
+                                new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(
+                                        new Ast.Expression.Binary("+",
+                                                new Ast.Expression.Binary("+",
+                                                        new Ast.Expression.Access(Optional.empty(), "x"),
+                                                        new Ast.Expression.Access(Optional.empty(), "y")
+                                                ),
+                                                new Ast.Expression.Access(Optional.empty(), "z")
+                                        )
+                                )))
+                        )),
+                        init(new Ast.Function("func", Arrays.asList("x", "y", "z"), Arrays.asList("Integer", "Integer", "Integer"), Optional.of("Nil"), Arrays.asList(
+                                new Ast.Statement.Expression(
+                                        init(new Ast.Expression.Function("print", Arrays.asList(
+                                                init(new Ast.Expression.Binary("+",
+                                                        init(new Ast.Expression.Binary("+",
+                                                                init(new Ast.Expression.Access(Optional.empty(), "x"),
+                                                                        ast -> ast.setVariable(new Environment.Variable("x", "x", Environment.Type.INTEGER, true, Environment.NIL))
+                                                                ),
+                                                                init(new Ast.Expression.Access(Optional.empty(), "y"),
+                                                                        ast -> ast.setVariable(new Environment.Variable("y", "y", Environment.Type.INTEGER, true, Environment.NIL))
+                                                                )
+                                                        ), ast -> ast.setType(Environment.Type.INTEGER)),
+                                                        init(new Ast.Expression.Access(Optional.empty(), "z"),
+                                                                ast -> ast.setVariable(new Environment.Variable("z", "z", Environment.Type.INTEGER, true, Environment.NIL))
+                                                        )), ast -> ast.setType(Environment.Type.INTEGER)
+                                        ))), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY),
+                                                Environment.Type.NIL, args -> Environment.NIL))
+                                        )
+                                )
+                        )), ast -> ast.setFunction(new Environment.Function("func", "func", Arrays.asList(Environment.Type.INTEGER, Environment.Type.INTEGER, Environment.Type.INTEGER),
+                                Environment.Type.NIL, args -> Environment.NIL))
                         )
                 )
         );
