@@ -69,7 +69,6 @@ public final class Generator implements Ast.Visitor<Void> {
         if (ast.getMutable()) {
             // Check for list
             if (ast.getValue().isPresent() && ast.getValue().get() instanceof Ast.Expression.PlcList) {
-                System.out.println("Dealing with lists");
                 print(typeName + "[] " + ast.getName() + " = ");
                 visit(ast.getValue().get());
                 print(";");
