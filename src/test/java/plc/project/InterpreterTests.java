@@ -8,6 +8,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -154,17 +155,108 @@ final class InterpreterTests {
     void testExpressionStatementAddition() {
         // log(1) + log(2);
         Scope scope = new Scope(null);
-        StringBuilder builder = new StringBuilder();
+        StringWriter writer = new StringWriter();
         scope.defineFunction("log", 1, args -> {
-            builder.append(args.get(0).getValue());
+            writer.write(String.valueOf(args.get(0).getValue()));
             return args.get(0);
         });
+
         test(new Ast.Statement.Expression(
                 new Ast.Expression.Binary("+",
                         new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE))),
                         new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.valueOf(2)))
         ))), Environment.NIL.getValue(), scope);
-        Assertions.assertEquals("12", builder.toString());
+        Assertions.assertEquals("12", writer.toString());
+    }
+
+    @Test
+    void testExpressionStatementSubtraction() {
+        // log(1) - log(2);
+        Scope scope = new Scope(null);
+        StringWriter writer = new StringWriter();
+        scope.defineFunction("log", 1, args -> {
+            writer.write(String.valueOf(args.get(0).getValue()));
+            return args.get(0);
+        });
+
+        test(new Ast.Statement.Expression(
+                new Ast.Expression.Binary("-",
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE))),
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.valueOf(2)))
+                        ))), Environment.NIL.getValue(), scope);
+        Assertions.assertEquals("12", writer.toString());
+    }
+
+    @Test
+    void testExpressionStatementMultiplication() {
+        // log(1) * log(2);
+        Scope scope = new Scope(null);
+        StringWriter writer = new StringWriter();
+        scope.defineFunction("log", 1, args -> {
+            writer.write(String.valueOf(args.get(0).getValue()));
+            return args.get(0);
+        });
+
+        test(new Ast.Statement.Expression(
+                new Ast.Expression.Binary("*",
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE))),
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.valueOf(2)))
+                        ))), Environment.NIL.getValue(), scope);
+        Assertions.assertEquals("12", writer.toString());
+    }
+
+    @Test
+    void testExpressionStatementDivision() {
+        // log(1) / log(2);
+        Scope scope = new Scope(null);
+        StringWriter writer = new StringWriter();
+        scope.defineFunction("log", 1, args -> {
+            writer.write(String.valueOf(args.get(0).getValue()));
+            return args.get(0);
+        });
+
+        test(new Ast.Statement.Expression(
+                new Ast.Expression.Binary("/",
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE))),
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.valueOf(2)))
+                        ))), Environment.NIL.getValue(), scope);
+        Assertions.assertEquals("12", writer.toString());
+    }
+
+    @Test
+    void testExpressionStatementExp() {
+        // log(1) ^ log(2);
+        Scope scope = new Scope(null);
+        StringWriter writer = new StringWriter();
+        scope.defineFunction("log", 1, args -> {
+            writer.write(String.valueOf(args.get(0).getValue()));
+            return args.get(0);
+        });
+
+        test(new Ast.Statement.Expression(
+                new Ast.Expression.Binary("^",
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE))),
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.valueOf(2)))
+                        ))), Environment.NIL.getValue(), scope);
+        Assertions.assertEquals("12", writer.toString());
+    }
+
+    @Test
+    void testExpressionStatementGT() {
+        // log(1) > log(2);
+        Scope scope = new Scope(null);
+        StringWriter writer = new StringWriter();
+        scope.defineFunction("log", 1, args -> {
+            writer.write(String.valueOf(args.get(0).getValue()));
+            return args.get(0);
+        });
+
+        test(new Ast.Statement.Expression(
+                new Ast.Expression.Binary(">",
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE))),
+                        new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(BigInteger.valueOf(2)))
+                        ))), Environment.NIL.getValue(), scope);
+        Assertions.assertEquals("12", writer.toString());
     }
 
     @ParameterizedTest
