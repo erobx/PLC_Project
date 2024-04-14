@@ -49,7 +49,7 @@ final class EndToEndInterpreterTests {
     private static Stream<Arguments> testGlobal() {
         return Stream.of(
                 // VAR name: Integer;
-                Arguments.of("Mutable", // Declaration test
+                Arguments.of("Mutable",
                         "VAR name: Integer;",
                         Environment.NIL.getValue(),
                         "name"
@@ -59,19 +59,18 @@ final class EndToEndInterpreterTests {
                         "VAR name: Integer = 1;",
                         BigInteger.ONE,
                         "name"
-                ),
-                // VAL name: Integer = 1;
-                Arguments.of("Immutable", // Initialization test
-                        "VAL name: Integer = 1;",
-                        BigInteger.ONE,
-                        "name"
-                        // Current CANVAS result: Initialization: Unexpected java.lang.NullPointerException (null)
-                ),
+               ),
                 // List initialization: LIST list: Integer = [1, 5, 10]; scope ={list = [1, 5, 10]}
                 Arguments.of("List Initialization",
                         "LIST list: Integer = [1, 5, 10];",
                         Arrays.asList(BigInteger.ONE, BigInteger.valueOf(5), BigInteger.TEN),
                         "list"
+                ),
+                // VAL name: Integer = 1;
+                Arguments.of("Immutable",
+                        "VAL name: Integer = 1;",
+                        BigInteger.ONE,
+                        "name"
                 )
         );
     }
