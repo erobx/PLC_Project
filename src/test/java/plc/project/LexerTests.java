@@ -42,6 +42,8 @@ public class LexerTests {
                 Arguments.of("Negative", "-1", true),
                 Arguments.of("Trailing Zeros", "100", true),
                 Arguments.of("Multiple Negative", "-50912", true),
+                Arguments.of("Only Zero", "0", true),
+                Arguments.of("Above Long Max", "123456789123456789123456789", false), // TODO: Look into this further
                 Arguments.of("Leading Zero", "01", false),
                 Arguments.of("Many Zeros", "000001000", false)
         );
@@ -59,8 +61,11 @@ public class LexerTests {
                 Arguments.of("Negative Decimal", "-1.0", true),
                 Arguments.of("Zero Decimal", "0.0", true),
                 Arguments.of("Negative Zero Decimal", "-0.0", true),
+                Arguments.of("Single Digits", "1.0", true),
                 Arguments.of("Trailing Decimal", "1.", false),
-                Arguments.of("Leading Decimal", ".5", false)
+                Arguments.of("Leading Decimal", ".5", false),
+                Arguments.of("Above Integer Precision", "9007199254740993.0", false ), //TODO: Look into this further
+                Arguments.of("Trailing Zeros", "111.000", false) //TODO: Look into this further
         );
     }
 
@@ -88,7 +93,12 @@ public class LexerTests {
                 Arguments.of("Double Apostrophe", "'''", false),
                 Arguments.of("Carriage Return", "'\r'", false),
                 Arguments.of("Backslash", "'\\'", false),
-                Arguments.of("Invalid Escape", "'\\a'", false)
+                Arguments.of("Invalid Escape", "'\\a'", false),
+                Arguments.of("Digit", "'1'", false), //TODO: Look into this further
+                Arguments.of("Unicode", "'\\u0000'", false),
+                Arguments.of("Space", "' '", false), //TODO: Look into this further
+                Arguments.of("Unterminated Newline", "'\n", false),
+                Arguments.of("Unterminated Empty", "''", false)
         );
     }
 
