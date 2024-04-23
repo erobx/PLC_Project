@@ -408,7 +408,7 @@ public class LexerTests {
     @Test
     void testException() {
         ParseException exception = Assertions.assertThrows(ParseException.class,
-                () -> new Lexer("\"unterminated").lex());
+                () -> new Lexer("\"unterminated\n").lex());
         Assertions.assertEquals(13, exception.getIndex());
 
         exception = Assertions.assertThrows(ParseException.class,
@@ -441,7 +441,7 @@ public class LexerTests {
 
         exception = Assertions.assertThrows(ParseException.class,
                 () -> new Lexer("'c").lex());
-        Assertions.assertEquals(1, exception.getIndex());
+        Assertions.assertEquals(2, exception.getIndex());
     }
 
     /**
