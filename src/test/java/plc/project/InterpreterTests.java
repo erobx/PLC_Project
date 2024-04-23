@@ -1038,7 +1038,7 @@ final class InterpreterTests {
     private static void testRuntimeException(Scope scope, RuntimeException exception, List<Ast> asts) {
         Interpreter interpreter = new Interpreter(scope);
         RuntimeException rex = Assertions.assertThrows(RuntimeException.class, () -> asts.forEach(interpreter::visit));
-        Assertions.assertEquals(exception, rex);
+        Assertions.assertEquals(exception.getMessage(), rex.getMessage());
     }
 
 }
