@@ -81,9 +81,13 @@ final class InterpreterTests {
     private static Stream<Arguments> testGlobal() {
         return Stream.of(
                 // VAR name;
+                // Failing Canvas test. Declaration: Unexpected java.lang.NullPointerException (null)
                 Arguments.of("Mutable", new Ast.Global("name", true, Optional.empty()), Environment.NIL.getValue()),
                 // VAL name = 1;
+                // Failing Canvas test. Declaration: Unexpected java.lang.NullPointerException (null)
                 Arguments.of("Immutable", new Ast.Global("name", false, Optional.of(new Ast.Expression.Literal(BigInteger.ONE))), BigInteger.ONE)
+                // List initialization. List Initialization: LIST list = [2, 4, 8];
+
         );
     }
 
