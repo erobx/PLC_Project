@@ -35,8 +35,13 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     @Override
     public Environment.PlcObject visit(Ast.Global ast) {
         Optional<Ast.Expression> values = ast.getValue();
-        Environment.PlcObject obj = values.map(this::visit).orElseGet(() -> Environment.NIL);
-        scope.getParent().defineVariable(ast.getName(), ast.getMutable(), obj);
+        Environment.PlcObject obj;
+        if (values.isPresent()) {
+            obj = visit(values.get());
+        } else {
+            obj = Environment.NIL;
+        }
+        scope.defineVariable(ast.getName(), ast.getMutable(), obj);
         return Environment.NIL;
     }
 
