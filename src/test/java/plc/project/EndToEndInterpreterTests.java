@@ -53,7 +53,12 @@ final class EndToEndInterpreterTests {
                         "VAR name: Integer;",
                         Environment.NIL.getValue(),
                         "name"
-                        // Current CANVAS result: Declaration: Unexpected java.lang.NullPointerException (null)
+                ),
+                // VAR name: Integer = 1;
+                Arguments.of("Initialization",
+                        "VAR name: Integer = 1;",
+                        BigInteger.ONE,
+                        "name"
                 ),
                 // VAL name: Integer = 1;
                 Arguments.of("Immutable", // Initialization test
