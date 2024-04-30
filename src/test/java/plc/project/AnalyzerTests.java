@@ -269,6 +269,25 @@ public final class AnalyzerTests {
                         )), ast -> ast.setFunction(new Environment.Function("func", "func", Arrays.asList(Environment.Type.INTEGER, Environment.Type.INTEGER, Environment.Type.INTEGER),
                                 Environment.Type.NIL, args -> Environment.NIL))
                         )
+                ),
+                Arguments.of("Square",
+                        // FUN square(num: Decimal): Decimal DO RETURN num * num; END
+                        new Ast.Function("square", Arrays.asList("num"), Arrays.asList("Decimal"), Optional.of("Decimal"), Arrays.asList(
+                                new Ast.Statement.Return(new Ast.Expression.Binary("*",
+                                        new Ast.Expression.Access(Optional.empty(), "num"),
+                                        new Ast.Expression.Access(Optional.empty(), "num"))
+                                )
+                        )),
+                       init(new Ast.Function("square", Arrays.asList("num"), Arrays.asList("Decimal"), Optional.of("Decimal"), Arrays.asList(
+                               new Ast.Statement.Return(init(new Ast.Expression.Binary("*",
+                                       init(new Ast.Expression.Access(Optional.empty(), "num"),
+                                               ast -> ast.setVariable(new Environment.Variable("num", "num", Environment.Type.DECIMAL, true, Environment.NIL))
+                                       ),
+                                       init(new Ast.Expression.Access(Optional.empty(), "num"),
+                                               ast -> ast.setVariable(new Environment.Variable("num", "num", Environment.Type.DECIMAL, true, Environment.NIL))
+                                       )
+                               ), ast -> ast.setType(Environment.Type.DECIMAL)))
+                       )), ast -> ast.setFunction(new Environment.Function("square", "square", Arrays.asList(Environment.Type.DECIMAL), Environment.Type.DECIMAL, args -> Environment.NIL)))
                 )
         );
     }

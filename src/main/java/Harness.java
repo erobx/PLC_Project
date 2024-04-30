@@ -25,8 +25,6 @@ public class Harness {
         String java_file = new String("Main.java");
         String source = new String();
         Scanner scanner;
-        String javac = new String("javac Main.java");
-        String java = new String("java Main");
 
         System.out.println(" -> Generating Java source from " + source_file);
 
