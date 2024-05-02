@@ -1,5 +1,6 @@
 package plc.project;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -181,7 +182,7 @@ public final class Lexer {
         } else if (peek("'", ".", ".")) {
             throw new ParseException("Invalid character", chars.index+2);
         } else {
-            throw new ParseException("Invalid character", chars.index+1);
+            throw new ParseException("Invalid character", chars.index+2);
         }
 
         return chars.emit(Token.Type.CHARACTER);

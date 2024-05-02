@@ -22,8 +22,13 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Alphabetic", "getName", true),
                 Arguments.of("Alphanumeric", "thelegend27", true),
+                Arguments.of("Underscores", "a_b_c", true),
+                Arguments.of("Hyphens", "a-b-c", true),
                 Arguments.of("Leading @", "@what3ver", true),
                 Arguments.of("Leading Hyphen", "-five", false),
+                Arguments.of("Leading Underscore", "_abc", false),
+                Arguments.of("Capitals", "ABC", true),
+                Arguments.of("Short Identifier", "a", true),
                 Arguments.of("Leading Digit", "1fish2fish3fishbluefish", false),
                 Arguments.of("Non Leading @", "some@words", false)
         );
@@ -42,6 +47,8 @@ public class LexerTests {
                 Arguments.of("Negative", "-1", true),
                 Arguments.of("Trailing Zeros", "100", true),
                 Arguments.of("Multiple Negative", "-50912", true),
+                Arguments.of("Only Zero", "0", true),
+                Arguments.of("Above Long Max", "123456789123456789123456789", true),
                 Arguments.of("Leading Zero", "01", false),
                 Arguments.of("Many Zeros", "000001000", false)
         );
@@ -59,8 +66,11 @@ public class LexerTests {
                 Arguments.of("Negative Decimal", "-1.0", true),
                 Arguments.of("Zero Decimal", "0.0", true),
                 Arguments.of("Negative Zero Decimal", "-0.0", true),
+                Arguments.of("Single Digits", "1.0", true),
                 Arguments.of("Trailing Decimal", "1.", false),
-                Arguments.of("Leading Decimal", ".5", false)
+                Arguments.of("Leading Decimal", ".5", false),
+                Arguments.of("Above Integer Precision", "9007199254740993.0", true),
+                Arguments.of("Trailing Zeros", "111.000", true)
         );
     }
 
@@ -88,7 +98,12 @@ public class LexerTests {
                 Arguments.of("Double Apostrophe", "'''", false),
                 Arguments.of("Carriage Return", "'\r'", false),
                 Arguments.of("Backslash", "'\\'", false),
-                Arguments.of("Invalid Escape", "'\\a'", false)
+                Arguments.of("Invalid Escape", "'\\a'", false),
+                Arguments.of("Digit", "'1'", true),
+                Arguments.of("Unicode", "'\\u0000'", false),
+                Arguments.of("Space", "' '", true),
+                Arguments.of("Unterminated Newline", "'\n'", false),
+                Arguments.of("Unterminated Empty", "'", false)
         );
     }
 
@@ -141,24 +156,24 @@ public class LexerTests {
     }
 
     private static Stream<Arguments> testExamples() {
-        String fizzBuzz = new String("LET i = 1;\nWHILE i != 100 DO\n    IF rem(i, 3) == 0 && rem(i, 5) == 0 DO");
+        String fizzBuzz = new String("LET i = 1;\nWHILE i != 100 DO\n    IF rem(i, 3) == 0 && rem(i, 5) == 0 DO\n        print(\"FizzBuzz\");\n    ELSE IF rem(i, 3) == 0 DO\n        print(\"Fizz\");\n    ELSE IF rem(i, 5) == 0 DO\n        print(\"Buzz\");\n    ELSE\n        print(i);\n    END END END\n    i = i + 1;\nEND");
         String source = new String("VAR i = -1 : Integer;\nVAL inc = 2 : Integer;\nFUN foo() DO\n    WHILE i != 1 DO\n        IF i > 0 DO\n            print(\"bar\");\n        END\n        i = i + inc;\n    END\nEND");
         List<Token> fbTokens = Arrays.asList(
-                //LET i = 1;
+                //LET i = 1;\n
                 new Token(Token.Type.IDENTIFIER, "LET", 0),
                 new Token(Token.Type.IDENTIFIER, "i", 4),
                 new Token(Token.Type.OPERATOR, "=", 6),
                 new Token(Token.Type.INTEGER, "1", 8),
                 new Token(Token.Type.OPERATOR, ";", 9),
 
-                //WHILE i != 100 DO
+                //WHILE i != 100 DO\n
                 new Token(Token.Type.IDENTIFIER, "WHILE", 11),
                 new Token(Token.Type.IDENTIFIER, "i", 17),
                 new Token(Token.Type.OPERATOR, "!=", 19),
                 new Token(Token.Type.INTEGER, "100", 22),
                 new Token(Token.Type.IDENTIFIER, "DO", 26),
 
-                //    IF rem(i, 3) == 0 && rem(i, 5) == 0 DO
+                //    IF rem(i, 3) == 0 && rem(i, 5) == 0 DO\n
                 new Token(Token.Type.IDENTIFIER, "IF", 33),
                 new Token(Token.Type.IDENTIFIER, "rem", 36),
                 new Token(Token.Type.OPERATOR, "(", 39),
@@ -177,7 +192,80 @@ public class LexerTests {
                 new Token(Token.Type.OPERATOR, ")", 62),
                 new Token(Token.Type.OPERATOR, "==", 64),
                 new Token(Token.Type.INTEGER, "0", 67),
-                new Token(Token.Type.IDENTIFIER, "DO", 69)
+                new Token(Token.Type.IDENTIFIER, "DO", 69),
+
+                //        print("FizzBuzz");\n
+                new Token(Token.Type.IDENTIFIER, "print",80),
+                new Token(Token.Type.OPERATOR, "(", 85),
+                new Token(Token.Type.STRING, "\"FizzBuzz\"", 86),
+                new Token(Token.Type.OPERATOR, ")", 96),
+                new Token(Token.Type.OPERATOR, ";", 97),
+
+                //    ELSE IF rem(i, 3) == 0 DO\n
+                new Token(Token.Type.IDENTIFIER, "ELSE", 103),
+                new Token(Token.Type.IDENTIFIER, "IF", 108),
+                new Token(Token.Type.IDENTIFIER, "rem", 111),
+                new Token(Token.Type.OPERATOR, "(", 114),
+                new Token(Token.Type.IDENTIFIER, "i", 115),
+                new Token(Token.Type.OPERATOR, ",", 116),
+                new Token(Token.Type.INTEGER, "3", 118),
+                new Token(Token.Type.OPERATOR, ")", 119),
+                new Token(Token.Type.OPERATOR, "==", 121),
+                new Token(Token.Type.INTEGER, "0", 124),
+                new Token(Token.Type.IDENTIFIER, "DO", 126),
+
+                //        print("Fizz");\n
+                new Token(Token.Type.IDENTIFIER, "print", 137),
+                new Token(Token.Type.OPERATOR, "(", 142),
+                new Token(Token.Type.STRING, "\"Fizz\"", 143),
+                new Token(Token.Type.OPERATOR, ")", 149),
+                new Token(Token.Type.OPERATOR, ";", 150),
+                //234567890123456789012345678901
+                //    ELSE IF rem(i, 5) == 0 DO\n
+                new Token(Token.Type.IDENTIFIER, "ELSE", 156),
+                new Token(Token.Type.IDENTIFIER, "IF", 161),
+                new Token(Token.Type.IDENTIFIER, "rem", 164),
+                new Token(Token.Type.OPERATOR, "(", 167),
+                new Token(Token.Type.IDENTIFIER, "i", 168),
+                new Token(Token.Type.OPERATOR, ",", 169),
+                new Token(Token.Type.INTEGER, "5", 171),
+                new Token(Token.Type.OPERATOR, ")", 172),
+                new Token(Token.Type.OPERATOR, "==", 174),
+                new Token(Token.Type.INTEGER, "0", 177),
+                new Token(Token.Type.IDENTIFIER, "DO", 179),
+                //23456789012345678901234
+                //        print("Buzz");\n
+                new Token(Token.Type.IDENTIFIER, "print", 190),
+                new Token(Token.Type.OPERATOR, "(", 195),
+                new Token(Token.Type.STRING, "\"Buzz\"", 196),
+                new Token(Token.Type.OPERATOR, ")", 202),
+                new Token(Token.Type.OPERATOR, ";", 203),
+                //567890123
+                //    ELSE\n
+                new Token(Token.Type.IDENTIFIER, "ELSE", 209),
+                //456789012345678901
+                //        print(i);\n
+                new Token(Token.Type.IDENTIFIER, "print", 222),
+                new Token(Token.Type.OPERATOR, "(", 227),
+                new Token(Token.Type.IDENTIFIER, "i", 228),
+                new Token(Token.Type.OPERATOR, ")", 229),
+                new Token(Token.Type.OPERATOR, ";", 230),
+                //2345678901234567
+                //    END END END\n
+                new Token(Token.Type.IDENTIFIER, "END", 236),
+                new Token(Token.Type.IDENTIFIER, "END", 240),
+                new Token(Token.Type.IDENTIFIER, "END", 244),
+                //890123456789012
+                //    i = i + 1;\n
+                new Token(Token.Type.IDENTIFIER, "i", 252),
+                new Token(Token.Type.OPERATOR, "=", 254),
+                new Token(Token.Type.IDENTIFIER, "i", 256),
+                new Token(Token.Type.OPERATOR, "+", 258),
+                new Token(Token.Type.INTEGER, "1", 260),
+                new Token(Token.Type.OPERATOR, ";", 261),
+                //3
+                //END
+                new Token(Token.Type.IDENTIFIER, "END", 263)
         );
         List<Token> input = Arrays.asList(
                 //VAR i = -1 : Integer;
@@ -320,7 +408,7 @@ public class LexerTests {
     @Test
     void testException() {
         ParseException exception = Assertions.assertThrows(ParseException.class,
-                () -> new Lexer("\"unterminated").lex());
+                () -> new Lexer("\"unterminated\n").lex());
         Assertions.assertEquals(13, exception.getIndex());
 
         exception = Assertions.assertThrows(ParseException.class,
@@ -353,7 +441,7 @@ public class LexerTests {
 
         exception = Assertions.assertThrows(ParseException.class,
                 () -> new Lexer("'c").lex());
-        Assertions.assertEquals(1, exception.getIndex());
+        Assertions.assertEquals(2, exception.getIndex());
     }
 
     /**

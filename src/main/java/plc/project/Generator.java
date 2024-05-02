@@ -196,11 +196,17 @@ public final class Generator implements Ast.Visitor<Void> {
             print("case ");
             visit(ast.getValue().get());
             print(":");
-            printStatements(ast.getStatements(), true, false);
+            if (!ast.getStatements().isEmpty()) {
+                printStatements(ast.getStatements(), true, false);
+            } else {
+                newline(indent+1);
+            }
             print("break;");
         } else {
             print("default:");
-            printStatements(ast.getStatements(), false, true);
+            if (!ast.getStatements().isEmpty()) {
+                printStatements(ast.getStatements(), false, true);
+            }
         }
 
         return null;

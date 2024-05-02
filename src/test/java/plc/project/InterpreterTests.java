@@ -81,9 +81,15 @@ final class InterpreterTests {
     private static Stream<Arguments> testGlobal() {
         return Stream.of(
                 // VAR name;
-                Arguments.of("Mutable", new Ast.Global("name", true, Optional.empty()), Environment.NIL.getValue()),
+                Arguments.of("Declaration", new Ast.Global("name", true, Optional.empty()), Environment.NIL.getValue()),
+                // VAR name = 1;
+                Arguments.of("Initialization", new Ast.Global("name", true, Optional.of(new Ast.Expression.Literal(BigInteger.ONE))), BigInteger.ONE),
                 // VAL name = 1;
-                Arguments.of("Immutable", new Ast.Global("name", false, Optional.of(new Ast.Expression.Literal(BigInteger.ONE))), BigInteger.ONE)
+                Arguments.of("Immutable", new Ast.Global("name", false, Optional.of(new Ast.Expression.Literal(BigInteger.ONE))), BigInteger.ONE),
+                // LIST list = [2, 4, 8];
+                Arguments.of("List Init", new Ast.Global("list", true, Optional.of(new Ast.Expression.PlcList(Arrays.asList(
+                        new Ast.Expression.Literal(BigInteger.valueOf(2)), new Ast.Expression.Literal(BigInteger.valueOf(4)), new Ast.Expression.Literal(BigInteger.valueOf(8))
+                )))), Arrays.asList(BigInteger.valueOf(2), BigInteger.valueOf(4), BigInteger.valueOf(8)))
         );
     }
 
@@ -1038,7 +1044,7 @@ final class InterpreterTests {
     private static void testRuntimeException(Scope scope, RuntimeException exception, List<Ast> asts) {
         Interpreter interpreter = new Interpreter(scope);
         RuntimeException rex = Assertions.assertThrows(RuntimeException.class, () -> asts.forEach(interpreter::visit));
-        Assertions.assertEquals(exception, rex);
+        Assertions.assertEquals(exception.getMessage(), rex.getMessage());
     }
 
 }

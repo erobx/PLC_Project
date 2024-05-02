@@ -10,7 +10,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     private Scope scope = new Scope(null);
 
-    private Scope funcScope;
+    private int argIndex;
 
     public Interpreter(Scope parent) {
         scope = new Scope(parent);
@@ -35,8 +35,13 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     @Override
     public Environment.PlcObject visit(Ast.Global ast) {
         Optional<Ast.Expression> values = ast.getValue();
-        Environment.PlcObject obj = values.map(this::visit).orElseGet(() -> Environment.NIL);
-        scope.getParent().defineVariable(ast.getName(), ast.getMutable(), obj);
+        Environment.PlcObject obj;
+        if (values.isPresent()) {
+            obj = visit(values.get());
+        } else {
+            obj = Environment.NIL;
+        }
+        scope.defineVariable(ast.getName(), ast.getMutable(), obj);
         return Environment.NIL;
     }
 
@@ -47,14 +52,15 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         }
         scope.defineFunction(ast.getName(), ast.getParameters().size(), args -> {
             scope = new Scope(scope);
+            argIndex = 0;
 
             for (String p : ast.getParameters()) {
                 Environment.Variable v;
                 try {
                     v = scope.lookupVariable(p);
                 } catch (Exception ex) {
-                    v = new Environment.Variable(p, true, Environment.create(args.getFirst().getValue()));
-                    args.removeFirst();
+                    v = new Environment.Variable(p, true, Environment.create(args.get(argIndex).getValue()));
+                    argIndex++;
                 }
                 scope.defineVariable(v.getName(), v.getMutable(), v.getValue());
             }

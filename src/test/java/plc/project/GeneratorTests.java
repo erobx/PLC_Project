@@ -142,6 +142,121 @@ public class GeneratorTests {
                                 "",
                                 "}"
                         )
+                ),
+                Arguments.of("Nested",
+                        /**
+                         * FUN main(): Integer DO
+                         *     LET i = 1;
+                         *     WHILE i != 100 DO
+                         *         SWITCH 3
+                         *             CASE 3:
+                         *                 print("Fizz");
+                         *             DEFAULT
+                         *         END
+                         *         SWITCH 5
+                         *             CASE 0:
+                         *                 print("Buzz");
+                         *             DEFAULT
+                         *         END
+                         *         i = i + 1;
+                         *     END
+                         *     RETURN 0;
+                         * END
+                         */
+                        new Ast.Source(
+                                Arrays.asList(),
+                                Arrays.asList(
+                                        init(new Ast.Function("main", Arrays.asList(), Arrays.asList(), Optional.of("Integer"), Arrays.asList(
+                                                init(new Ast.Statement.Declaration("i", Optional.empty(), Optional.of(init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER)))),
+                                                        ast -> ast.setVariable(new Environment.Variable("i", "i", Environment.Type.INTEGER, true, Environment.NIL))
+                                                ),
+                                                new Ast.Statement.While(
+                                                        init(new Ast.Expression.Binary("!=",
+                                                                init(new Ast.Expression.Access(Optional.empty(), "i"), ast -> ast.setVariable(new Environment.Variable("i", "i", Environment.Type.INTEGER, true, Environment.NIL))),
+                                                                init(new Ast.Expression.Literal(BigInteger.valueOf(100)), ast -> ast.setType(Environment.Type.INTEGER))
+                                                        ), ast -> ast.setType(Environment.Type.BOOLEAN)),
+                                                        Arrays.asList(
+                                                                new Ast.Statement.Switch(
+                                                                        init(new Ast.Expression.Literal(BigInteger.valueOf(3)), ast -> ast.setType(Environment.Type.INTEGER)),
+                                                                        Arrays.asList(
+                                                                                new Ast.Statement.Case(
+                                                                                        Optional.of(init(new Ast.Expression.Literal(BigInteger.valueOf(3)), ast -> ast.setType(Environment.Type.INTEGER))),
+                                                                                        Arrays.asList(
+                                                                                                new Ast.Statement.Expression(
+                                                                                                        init(new Ast.Expression.Function("print", Arrays.asList(init(new Ast.Expression.Literal("Fizz"), ast -> ast.setType(Environment.Type.STRING)))),
+                                                                                                                ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL))
+                                                                                                        )
+                                                                                                )
+                                                                                        )
+                                                                                ),
+                                                                                new Ast.Statement.Case(
+                                                                                        Optional.empty(),
+                                                                                        Arrays.asList()
+                                                                                )
+                                                                        )
+                                                                ),
+                                                                new Ast.Statement.Switch(
+                                                                        init(new Ast.Expression.Literal(BigInteger.valueOf(5)), ast -> ast.setType(Environment.Type.INTEGER)),
+                                                                        Arrays.asList(
+                                                                                new Ast.Statement.Case(
+                                                                                        Optional.of(init(new Ast.Expression.Literal(BigInteger.valueOf(0)), ast -> ast.setType(Environment.Type.INTEGER))),
+                                                                                        Arrays.asList(
+                                                                                                new Ast.Statement.Expression(
+                                                                                                        init(new Ast.Expression.Function("print", Arrays.asList(init(new Ast.Expression.Literal("Buzz"), ast -> ast.setType(Environment.Type.STRING)))),
+                                                                                                                ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL))
+                                                                                                        )
+                                                                                                )
+                                                                                        )
+                                                                                ),
+                                                                                new Ast.Statement.Case(
+                                                                                        Optional.empty(),
+                                                                                        Arrays.asList()
+                                                                                )
+                                                                        )
+                                                                ),
+                                                                new Ast.Statement.Assignment(
+                                                                        init(new Ast.Expression.Access(Optional.empty(), "i"), ast -> ast.setVariable(new Environment.Variable("i", "i", Environment.Type.INTEGER, true, Environment.NIL))),
+                                                                        init(new Ast.Expression.Binary("+",
+                                                                                init(new Ast.Expression.Access(Optional.empty(), "i"), ast -> ast.setVariable(new Environment.Variable("i", "i", Environment.Type.INTEGER, true, Environment.NIL))),
+                                                                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))
+                                                                        ), ast -> ast.setType(Environment.Type.INTEGER))
+                                                                )
+                                                        )
+                                                ),
+                                                new Ast.Statement.Return(init(new Ast.Expression.Literal(BigInteger.ZERO), ast -> ast.setType(Environment.Type.INTEGER)))
+                                            )), ast -> ast.setFunction(new Environment.Function("main", "main", Arrays.asList(), Environment.Type.INTEGER, args -> Environment.NIL))
+                                        )
+                                )
+                        ),
+                        String.join(System.lineSeparator(),
+                                "public class Main {",
+                                "",
+                                "    public static void main(String[] args) {",
+                                "        System.exit(new Main().main());",
+                                "    }",
+                                "",
+                                "    int main() {",
+                                "        int i = 1;",
+                                "        while (i != 100) {",
+                                "            switch (3) {",
+                                "                case 3:",
+                                "                    System.out.println(\"Fizz\");",
+                                "                    break;",
+                                "                default:",
+                                "            }",
+                                "            switch (5) {",
+                                "                case 0:",
+                                "                    System.out.println(\"Buzz\");",
+                                "                    break;",
+                                "                default:",
+                                "            }",
+                                "            i = i + 1;",
+                                "        }",
+                                "        return 0;",
+                                "    }",
+                                "",
+                                "}"
+                        )
                 )
         );
     }
@@ -463,6 +578,35 @@ public class GeneratorTests {
                                 "        break;",
                                 "    default:",
                                 "        System.out.println(\"no\");",
+                                "}"
+                        )
+                ),
+                Arguments.of("Empty Case Statements",
+                        // SWITCH letter
+                        //     CASE 'y':
+                        //         print("yes");
+                        //         letter = 'n';
+                        //         break;
+                        //     DEFAULT
+                        // END
+                        new Ast.Statement.Switch(
+                                init(new Ast.Expression.Access(Optional.empty(), "letter"), ast -> ast.setVariable(new Environment.Variable("letter", "letter", Environment.Type.CHARACTER, true, Environment.create('y')))),
+                                Arrays.asList(
+                                        new Ast.Statement.Case(
+                                                Optional.of(init(new Ast.Expression.Literal('y'), ast -> ast.setType(Environment.Type.CHARACTER))),
+                                                Arrays.asList()
+                                        ),
+                                        new Ast.Statement.Case(
+                                                Optional.empty(),
+                                                Arrays.asList()
+                                        )
+                                )
+                        ),
+                        String.join(System.lineSeparator(),
+                                "switch (letter) {",
+                                "    case 'y':",
+                                "        break;",
+                                "    default:",
                                 "}"
                         )
                 )
