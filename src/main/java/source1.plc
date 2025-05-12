@@ -1,0 +1,4 @@
+FUN main(): Integer DO
+    print("Hello, World!");
+    RETURN 0;
+END
